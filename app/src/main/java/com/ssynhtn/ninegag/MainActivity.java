@@ -1,45 +1,45 @@
 package com.ssynhtn.ninegag;
 
 import android.app.Activity;
-import android.os.AsyncTask;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
 import android.widget.AbsListView;
-import android.widget.ArrayAdapter;
-import android.widget.ListView;
+import android.widget.Button;
+import android.widget.TextView;
 import android.widget.Toast;
 
-import com.android.volley.Request;
-import com.android.volley.Response;
 import com.android.volley.VolleyError;
-import com.android.volley.toolbox.JsonObjectRequest;
+import com.etsy.android.grid.StaggeredGridView;
 import com.ssynhtn.ninegag.data.GagItem;
 import com.ssynhtn.ninegag.volley.VolleySingleton;
 
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 import butterknife.ButterKnife;
 import butterknife.InjectView;
 
 
-public class MainActivity extends Activity implements AbsListView.OnScrollListener {
+public class MainActivity extends Activity implements AbsListView.OnScrollListener, GagItemDownloader.OnDownloadListener, View.OnClickListener {
     private static final String TAG = MainActivity.class.getSimpleName();
 
-    @InjectView(R.id.listView) ListView listView;
-    private ArrayAdapter<String> adapter;
+//    @InjectView(R.id.listView) ListView listView;
+    @InjectView(R.id.gridView)
+    StaggeredGridView gridView;
+    private MySimpleAdapter adapter;
+
+    private TextView loadingTextView;
+    private Button tryLoadButton;
 
     private static final String KEY_NEXT_PAGE = "KEY_NEXT_PAGE";
     private String next;
 
-    private boolean loading;
+
+    private GagItemDownloader mDownloader = new GagItemDownloader(this, this);
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -52,13 +52,20 @@ public class MainActivity extends Activity implements AbsListView.OnScrollListen
             next = savedInstanceState.getString(KEY_NEXT_PAGE, "0");
         }
 
-        String[] data = "hello world google chrome android world".split(" ");
-        List<String> list = new ArrayList<String>();
-        list.addAll(Arrays.asList(data));
-        adapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, list);
-        listView.setAdapter(adapter);
+        LayoutInflater inflater = LayoutInflater.from(this);
+        View footerView = inflater.inflate(R.layout.grid_view_footer, gridView, false);
+        gridView.addFooterView(footerView);
 
-        listView.setOnScrollListener(this);
+        loadingTextView = (TextView) footerView.findViewById(R.id.loading_text_view);
+        tryLoadButton = (Button) footerView.findViewById(R.id.button_try_load_again);
+        tryLoadButton.setOnClickListener(this);
+
+        List<String> list = new ArrayList<String>();
+        adapter = new MySimpleAdapter(this, list);
+
+        gridView.setAdapter(adapter);
+        gridView.setOnScrollListener(this);
+
     }
 
     @Override
@@ -66,6 +73,16 @@ public class MainActivity extends Activity implements AbsListView.OnScrollListen
         super.onSaveInstanceState(outState);
         outState.putString(KEY_NEXT_PAGE, next);
     }
+
+
+
+    public void onClick(View view){
+//        loadContent();
+        if(view.getId() == R.id.button_try_load_again)
+            mDownloader.downloadMore();
+    }
+
+
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -86,8 +103,9 @@ public class MainActivity extends Activity implements AbsListView.OnScrollListen
             return true;
         }
         else if(id == R.id.action_refresh){
-            if(!loading)
-                loadContent();
+//            if(!loading)
+//                loadContent();
+            mDownloader.downloadMore();
             return true;
         }
         else if(id == R.id.action_cancel_refresh){
@@ -97,92 +115,98 @@ public class MainActivity extends Activity implements AbsListView.OnScrollListen
 
         return super.onOptionsItemSelected(item);
     }
-
-    public static final String BASE_URL = "http://infinigag-us.aws.af.cm/hot/";
-    private void loadContent() {
-        final String url = BASE_URL + next;
-        JsonObjectRequest request = new JsonObjectRequest(Request.Method.GET, url, null,
-                new Response.Listener<JSONObject>() {
-                    @Override
-                    public void onResponse(JSONObject jsonObject) {
-//                        Toast.makeText(MainActivity.this, "content loaded: " + jsonObject, Toast.LENGTH_SHORT).show();
-
-                        Log.d(TAG, "json object: " + jsonObject);
-
-                        List<GagItem> items = extractGagItems(jsonObject);
-
-                        String nextPage = extractNext(jsonObject);
-                        if(nextPage != null){
-                            next = nextPage;
-                        }
-
-                        addItemsToList(items);
-                        Toast.makeText(MainActivity.this, "loading finished", Toast.LENGTH_SHORT).show();
-                        Log.d(TAG, "next is: " + next);
-
-                        loading = false;
-
-                    }
-                },
-                new Response.ErrorListener(){
-                    @Override
-                    public void onErrorResponse(VolleyError volleyError) {
-                        // show "Not internet view"
-                        Toast.makeText(MainActivity.this, "loading failed", Toast.LENGTH_SHORT).show();
-                        loading = false;
-                    }
-                }
-        );
-
-        request.setTag(this);
-
-        loading = true;
-        Toast.makeText(this, "start loading new stuff, please wait patiently", Toast.LENGTH_SHORT).show();
-        VolleySingleton.getInstance(this).addToRequestQueue(request);
-
-    }
+//
+//    public static final String BASE_URL = "http://infinigag-us.aws.af.cm/hot/";
+//    private void loadContent() {
+//        final String url = BASE_URL + next;
+//        JsonObjectRequest request = new JsonObjectRequest(Request.Method.GET, url, null,
+//                new Response.Listener<JSONObject>() {
+//                    @Override
+//                    public void onResponse(JSONObject jsonObject) {
+////                        Toast.makeText(MainActivity.this, "content loaded: " + jsonObject, Toast.LENGTH_SHORT).show();
+//
+//                        Log.d(TAG, "json object: " + jsonObject);
+//
+//                        List<GagItem> items = extractGagItems(jsonObject);
+//
+//                        String nextPage = extractNext(jsonObject);
+//                        if(nextPage != null){
+//                            next = nextPage;
+//                        }
+//
+//                        addItemsToList(items);
+//                        Toast.makeText(MainActivity.this, "loading finished", Toast.LENGTH_SHORT).show();
+//                        Log.d(TAG, "next is: " + next);
+//
+//                        loading = false;
+//                        loadingTextView.setVisibility(View.GONE);
+//
+//                    }
+//                },
+//                new Response.ErrorListener(){
+//                    @Override
+//                    public void onErrorResponse(VolleyError volleyError) {
+//                        // show "Not internet view"
+//                        Toast.makeText(MainActivity.this, "loading failed", Toast.LENGTH_SHORT).show();
+//                        loading = false;
+//                        loadingTextView.setVisibility(View.GONE);
+//                    }
+//                }
+//        );
+//
+//        request.setTag(this);
+//
+//        loading = true;
+//        loadingTextView.setVisibility(View.VISIBLE);
+//        Toast.makeText(this, "start loading new stuff, please wait patiently", Toast.LENGTH_SHORT).show();
+//        VolleySingleton.getInstance(this).addToRequestQueue(request);
+//
+//    }
 
     private void addItemsToList(List<GagItem> items) {
+        List<String> list = new ArrayList<String>();
         for(GagItem item : items){
-            adapter.add(item.toString());
-        }
-    }
-
-    // normally returns the next page, but if parsing error occurs, returns null
-    private String extractNext(JSONObject jsonObject) {
-        String next = null;
-        try{
-            JSONObject paging = jsonObject.getJSONObject("paging");
-            next = paging.getString("next");
-        }catch(JSONException e){
-            Log.e(TAG, "json parsing error: " + e);
+            list.add(item.toString());
         }
 
-        return next;
+        adapter.addAll(list);
     }
-
-    private List<GagItem> extractGagItems(JSONObject jsonObject) {
-        List<GagItem> items = new ArrayList<GagItem>();
-
-        try{
-            JSONArray data = jsonObject.getJSONArray("data");
-            int numItems = data.length();
-            for(int i = 0; i < numItems; i++){
-                JSONObject singleItem = data.getJSONObject(i);
-                String id = singleItem.getString("id");
-                String caption = singleItem.getString("caption");
-                JSONObject imageUrls = singleItem.getJSONObject("images");
-                String imageUrlNormal = imageUrls.getString("normal");
-                String imageUrlLarge = imageUrls.getString("large");
-                GagItem item = new GagItem(id, caption, imageUrlNormal, imageUrlLarge);
-                items.add(item);
-            }
-        }catch(JSONException e){
-            Log.e(TAG, "parsing error: " + e);
-        }
-
-        return items;
-    }
+//
+//    // normally returns the next page, but if parsing error occurs, returns null
+//    private String extractNext(JSONObject jsonObject) {
+//        String next = null;
+//        try{
+//            JSONObject paging = jsonObject.getJSONObject("paging");
+//            next = paging.getString("next");
+//        }catch(JSONException e){
+//            Log.e(TAG, "json parsing error: " + e);
+//        }
+//
+//        return next;
+//    }
+//
+//    private List<GagItem> extractGagItems(JSONObject jsonObject) {
+//        List<GagItem> items = new ArrayList<GagItem>();
+//
+//        try{
+//            JSONArray data = jsonObject.getJSONArray("data");
+//            int numItems = data.length();
+//            for(int i = 0; i < numItems; i++){
+//                JSONObject singleItem = data.getJSONObject(i);
+//                String id = singleItem.getString("id");
+//                String caption = singleItem.getString("caption");
+//                JSONObject imageUrls = singleItem.getJSONObject("images");
+//                String imageUrlNormal = imageUrls.getString("normal");
+//                String imageUrlLarge = imageUrls.getString("large");
+//                GagItem item = new GagItem(id, caption, imageUrlNormal, imageUrlLarge);
+//                items.add(item);
+//            }
+//        }catch(JSONException e){
+//            Log.e(TAG, "parsing error: " + e);
+//        }
+//
+//        return items;
+//    }
 
     private void cancelLoading(){
         VolleySingleton.getInstance(this).getRequestQueue().cancelAll(this);
@@ -200,11 +224,15 @@ public class MainActivity extends Activity implements AbsListView.OnScrollListen
         Log.d(TAG, "onScrollStateChanged: " + state);
     }
 
+    // TODO
+    // for the time being, if the internet is not available, this would cause endless trying to load...
     @Override
     public void onScroll(AbsListView view, int firstVisibleItem, int visibleItemCount, int totalItemCount) {
-        if(hasReachedEnd(firstVisibleItem, visibleItemCount, totalItemCount) && !loading){
-            loadContent();
-        }
+//        if(hasReachedEnd(firstVisibleItem, visibleItemCount, totalItemCount)){ //&& !loading
+////            loadContent();
+//            mDownloader.downloadMore();
+//        }
+
     }
 
     private boolean hasReachedEnd(int firstVisibleItem, int visibleItemCount, int totalItemCount) {
@@ -212,34 +240,27 @@ public class MainActivity extends Activity implements AbsListView.OnScrollListen
         return firstVisibleItem + visibleItemCount >= totalItemCount;
     }
 
-
-    private class LoadJsonTask extends AsyncTask<String, Void, JSONObject> {
-        public static final String BASE_URL = "http://www.baidu.com/";
-
-        @Override
-        protected JSONObject doInBackground(String... params) {
-            String page = params[0];
-            String url = BASE_URL + page;
-
-            JsonObjectRequest request = new JsonObjectRequest(Request.Method.GET, url, null,
-                    new Response.Listener<JSONObject>() {
-                        @Override
-                        public void onResponse(JSONObject jsonObject) {
-
-                        }
-                    },
-                    new Response.ErrorListener(){
-                        @Override
-                        public void onErrorResponse(VolleyError volleyError) {
-
-                        }
-                    }
-            );
-
-
-
-            return null;
-        }
+    @Override
+    public void onDownloadStart() {
+        loadingTextView.setVisibility(View.VISIBLE);
+        tryLoadButton.setVisibility(View.GONE);
     }
+
+    @Override
+    public void onDownloadSuccess(List<GagItem> items) {
+        loadingTextView.setVisibility(View.GONE);
+        addItemsToList(items);
+    }
+
+    @Override
+    public void onDownloadFail(VolleyError error) {
+        tryLoadButton.setVisibility(View.VISIBLE);
+        loadingTextView.setVisibility(View.GONE);
+
+        Toast.makeText(this, "loading failed", Toast.LENGTH_SHORT).show();
+    }
+
+
+
 
 }
