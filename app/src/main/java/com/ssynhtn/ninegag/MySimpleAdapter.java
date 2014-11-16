@@ -9,6 +9,7 @@ import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 import android.widget.TextView;
 
+import com.ssynhtn.ninegag.data.GagItem;
 import com.ssynhtn.ninegag.view.SquareImageView;
 
 import java.util.ArrayList;
@@ -21,17 +22,17 @@ import java.util.List;
 public class MySimpleAdapter extends BaseAdapter {
 
     private Context context;
-    private List<String> data;
+    private List<GagItem> data;
     private Bitmap placeholderBitmap;
 
     public MySimpleAdapter(Context context) {
         super();
         this.context = context;
-        data = new ArrayList<String>();
+        data = new ArrayList<GagItem>();
         placeholderBitmap = BitmapFactory.decodeResource(context.getResources(), R.drawable.ic_launcher);
     }
 
-    public MySimpleAdapter(Context context, List<String> data){
+    public MySimpleAdapter(Context context, List<GagItem> data){
         this(context);
         this.data.addAll(data);
     }
@@ -42,7 +43,7 @@ public class MySimpleAdapter extends BaseAdapter {
     }
 
     @Override
-    public String getItem(int position) {
+    public GagItem getItem(int position) {
         return data.get(position);
     }
 
@@ -64,7 +65,7 @@ public class MySimpleAdapter extends BaseAdapter {
             holder = (ViewHolder) convertView.getTag();
         }
 
-        String caption = getItem(position);
+        String caption = getItem(position).getCaption();
         holder.textView.setText(caption);
         holder.imageView.setImageBitmap(placeholderBitmap);
         return convertView;
@@ -81,7 +82,7 @@ public class MySimpleAdapter extends BaseAdapter {
 
     }
 
-    public void addAll(Collection<String> items){
+    public void addAll(Collection<GagItem> items){
         data.addAll(items);
         notifyDataSetChanged();
     }

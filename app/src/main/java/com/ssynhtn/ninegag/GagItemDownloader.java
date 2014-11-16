@@ -22,7 +22,7 @@ import java.util.List;
  */
 public class GagItemDownloader {
     private static final String BASE_URL = "http://infinigag-us.aws.af.cm/hot/";
-    private static final String FIRST_PAGE = "0";
+    public static final String FIRST_PAGE = "0";
     private static final String TAG = GagItemDownloader.class.getSimpleName();
 
     private Context context;
@@ -39,9 +39,9 @@ public class GagItemDownloader {
     }
 
     public static interface OnDownloadListener {
-        void onDownloadStart();   // give listener a chance to show progress and stuff
-        void onDownloadSuccess(List<GagItem> items);
-        void onDownloadFail(VolleyError error);
+        void onDownloadStart(String page);   // give listener a chance to show progress and stuff
+        void onDownloadSuccess(List<GagItem> items, String page, String next);
+        void onDownloadFail(VolleyError error, String page);
 //        void onNoHandle();  // download request was not handled for some reason, e.g. last downloading is in progress
     }
 
@@ -57,7 +57,7 @@ public class GagItemDownloader {
         downloadMore(next);
     }
 
-    private void downloadMore(String page){
+    private void downloadMore(final String page){
         if(loading) return;
 
         String url = BASE_URL + page;
@@ -76,7 +76,7 @@ public class GagItemDownloader {
                             next = nextPage;
                         }
 
-                        mListener.onDownloadSuccess(items);
+                        mListener.onDownloadSuccess(items, page, nextPage);
                         loading = false;
 
                     }
@@ -85,7 +85,7 @@ public class GagItemDownloader {
                     @Override
                     public void onErrorResponse(VolleyError volleyError) {
                         loading = false;
-                        mListener.onDownloadFail(volleyError);
+                        mListener.onDownloadFail(volleyError, page);
                     }
                 }
         );
@@ -93,7 +93,7 @@ public class GagItemDownloader {
         request.setTag(this);
 
         loading = true;
-        mListener.onDownloadStart();
+        mListener.onDownloadStart(page);
         VolleySingleton.getInstance(context).addToRequestQueue(request);
 
     }

@@ -7,6 +7,23 @@ public class GagItem {
 
     String id;
     String caption;
+
+    public String getImageUrlNormal() {
+        return imageUrlNormal;
+    }
+
+    public String getCaption() {
+        return caption;
+    }
+
+    public String getId() {
+        return id;
+    }
+
+    public String getImageUrlLarge() {
+        return imageUrlLarge;
+    }
+
     String imageUrlNormal;
     String imageUrlLarge;
 
