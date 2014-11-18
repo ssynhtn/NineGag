@@ -5,24 +5,27 @@
                 android:layout_height="match_parent"
                 tools:context=".MainActivity">
 
-
-    <!--<ListView-->
-        <!--android:layout_width="match_parent"-->
-        <!--android:layout_height="wrap_content"-->
-        <!--android:id="@+id/listView"-->
-        <!--android:layout_alignParentTop="true"-->
-        <!--android:layout_alignParentLeft="true"-->
-        <!--android:layout_alignParentStart="true" />-->
-
-    <com.etsy.android.grid.StaggeredGridView
-        android:id="@+id/gridView"
+    <android.support.v4.widget.SwipeRefreshLayout
+        android:id="@+id/swipe_refresh_layout"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_alignParentLeft="true"
         android:layout_alignParentStart="true"
         android:layout_alignParentTop="true"
-        app:item_margin="8dp"
-        app:column_count="@integer/column_count" />
+        >
+
+
+        <com.etsy.android.grid.StaggeredGridView
+            android:id="@+id/gridView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            app:item_margin="8dp"
+            app:column_count="@integer/column_count" />
+
+
+    </android.support.v4.widget.SwipeRefreshLayout>
+
+
 
 
 

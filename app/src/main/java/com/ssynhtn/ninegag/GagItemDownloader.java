@@ -67,7 +67,7 @@ public class GagItemDownloader {
                     public void onResponse(JSONObject jsonObject) {
 //                        Toast.makeText(MainActivity.this, "content loaded: " + jsonObject, Toast.LENGTH_SHORT).show();
 
-                        Log.d(TAG, "json object: " + jsonObject);
+//                        Log.d(TAG, "json object: " + jsonObject);
 
                         List<GagItem> items = extractGagItems(jsonObject);
 

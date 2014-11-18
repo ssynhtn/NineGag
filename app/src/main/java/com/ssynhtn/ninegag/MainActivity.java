@@ -1,7 +1,9 @@
 package com.ssynhtn.ninegag;
 
 import android.app.Activity;
+import android.content.Intent;
 import android.os.Bundle;
+import android.support.v4.widget.SwipeRefreshLayout;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -9,6 +11,7 @@ import android.view.View;
 import android.widget.AbsListView;
 import android.widget.AdapterView;
 import android.widget.Button;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -23,7 +26,11 @@ import butterknife.ButterKnife;
 import butterknife.InjectView;
 
 
-public class MainActivity extends Activity implements AbsListView.OnScrollListener, GagItemDownloader.OnDownloadListener, View.OnClickListener, AdapterView.OnItemClickListener {
+public class MainActivity extends Activity implements AbsListView.OnScrollListener,
+        GagItemDownloader.OnDownloadListener,
+        View.OnClickListener,
+        AdapterView.OnItemClickListener,
+        SwipeRefreshLayout.OnRefreshListener{
     private static final String TAG = MainActivity.class.getSimpleName();
 
 //    @InjectView(R.id.listView) ListView listView;
@@ -31,8 +38,12 @@ public class MainActivity extends Activity implements AbsListView.OnScrollListen
     StaggeredGridView gridView;
     private MySimpleAdapter adapter;
 
+    @InjectView(R.id.swipe_refresh_layout)
+    SwipeRefreshLayout mSwipeRefreshLayout;
+
     private TextView loadingTextView;
     private Button tryLoadButton;
+    private ProgressBar mProgressBar;
     private int lastLoadingCount = -1;
 
     private static final String KEY_NEXT_PAGE = "KEY_NEXT_PAGE";
@@ -52,11 +63,19 @@ public class MainActivity extends Activity implements AbsListView.OnScrollListen
             next = savedInstanceState.getString(KEY_NEXT_PAGE, "0");
         }
 
+        mSwipeRefreshLayout.setColorSchemeResources(android.R.color.holo_blue_light,
+                android.R.color.holo_green_light,
+                android.R.color.holo_red_light,
+                android.R.color.holo_orange_light);
+
+        mSwipeRefreshLayout.setOnRefreshListener(this);
+
         LayoutInflater inflater = LayoutInflater.from(this);
         View footerView = inflater.inflate(R.layout.grid_view_footer, gridView, false);
         gridView.addFooterView(footerView);
 
         loadingTextView = (TextView) footerView.findViewById(R.id.loading_text_view);
+        mProgressBar = (ProgressBar) footerView.findViewById(R.id.loading_progressBar);
         tryLoadButton = (Button) footerView.findViewById(R.id.button_try_load_again);
         tryLoadButton.setOnClickListener(this);
 
@@ -153,10 +172,14 @@ public class MainActivity extends Activity implements AbsListView.OnScrollListen
     @Override
     public void onDownloadStart(String page) {
         if(page.equals(GagItemDownloader.FIRST_PAGE)){
+            mSwipeRefreshLayout.setEnabled(false);
+            mSwipeRefreshLayout.setRefreshing(true);
             // fresh from top
         } else {
-            loadingTextView.setVisibility(View.VISIBLE);
+//            loadingTextView.setVisibility(View.VISIBLE);
+            mProgressBar.setVisibility(View.VISIBLE);
             tryLoadButton.setVisibility(View.GONE);
+
         }
 
     }
@@ -164,17 +187,26 @@ public class MainActivity extends Activity implements AbsListView.OnScrollListen
     @Override
     public void onDownloadSuccess(List<GagItem> items, String page, String next) {
         if(page.equals(GagItemDownloader.FIRST_PAGE)){
-
+            mSwipeRefreshLayout.setRefreshing(false);
+            mSwipeRefreshLayout.setEnabled(true);
         } else {
-            loadingTextView.setVisibility(View.GONE);
+//            loadingTextView.setVisibility(View.GONE);
+            mProgressBar.setVisibility(View.GONE);
         }
         addItemsToList(items);
     }
 
     @Override
     public void onDownloadFail(VolleyError error, String page) {
-        tryLoadButton.setVisibility(View.VISIBLE);
-        loadingTextView.setVisibility(View.GONE);
+        if(page.equals(GagItemDownloader.FIRST_PAGE)){
+            mSwipeRefreshLayout.setRefreshing(false);
+            mSwipeRefreshLayout.setEnabled(true);
+        } else {
+            tryLoadButton.setVisibility(View.VISIBLE);
+//            loadingTextView.setVisibility(View.GONE);
+            mProgressBar.setVisibility(View.GONE);
+        }
+
 
         Toast.makeText(this, "loading failed " + error, Toast.LENGTH_SHORT).show();
     }
@@ -186,6 +218,15 @@ public class MainActivity extends Activity implements AbsListView.OnScrollListen
         String urlLarge = item.getImageUrlLarge();
         String caption = item.getCaption();
 
+        Intent intent = new Intent(this,GagItemActivity.class);
+        intent.putExtra(GagItemActivity.EXTRA_GAG_ITEM, item);
+        startActivity(intent);
+
         Toast.makeText(this, "clicked on item: " + urlLarge + ", caption: " + caption, Toast.LENGTH_SHORT).show();
+    }
+
+    @Override
+    public void onRefresh() {
+        mDownloader.downloadFirst();
     }
 }

@@ -1,6 +1,7 @@
 package com.ssynhtn.ninegag;
 
 import android.content.Context;
+import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.view.LayoutInflater;
@@ -9,8 +10,11 @@ import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 import android.widget.TextView;
 
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.ImageLoader;
 import com.ssynhtn.ninegag.data.GagItem;
 import com.ssynhtn.ninegag.view.SquareImageView;
+import com.ssynhtn.ninegag.volley.VolleySingleton;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -22,14 +26,19 @@ import java.util.List;
 public class MySimpleAdapter extends BaseAdapter {
 
     private Context context;
+    private Resources mResources;
     private List<GagItem> data;
     private Bitmap placeholderBitmap;
+    private Bitmap errorBitmap;
 
     public MySimpleAdapter(Context context) {
         super();
         this.context = context;
+        mResources = context.getResources();
         data = new ArrayList<GagItem>();
-        placeholderBitmap = BitmapFactory.decodeResource(context.getResources(), R.drawable.ic_launcher);
+        data.add(new GagItem("-1", "test caption", "http://testbadurl/", "http://testbadurl/"));
+        placeholderBitmap = BitmapFactory.decodeResource(mResources, R.drawable.ic_launcher);
+        errorBitmap = BitmapFactory.decodeResource(mResources, R.drawable.empty_photo);
     }
 
     public MySimpleAdapter(Context context, List<GagItem> data){
@@ -54,8 +63,10 @@ public class MySimpleAdapter extends BaseAdapter {
 
     @Override
     public View getView(int position, View convertView, ViewGroup parent) {
+        String caption = getItem(position).getCaption();
+        String url = getItem(position).getImageUrlNormal();
 
-        ViewHolder holder;
+        final ViewHolder holder;
         if(convertView == null){
             LayoutInflater inflater = LayoutInflater.from(context);
             convertView = inflater.inflate(R.layout.grid_item, parent, false);
@@ -63,17 +74,46 @@ public class MySimpleAdapter extends BaseAdapter {
             convertView.setTag(holder);
         } else {
             holder = (ViewHolder) convertView.getTag();
+            if(holder.mImageContainer != null){
+                if(holder.mImageContainer.getRequestUrl().equals(url)){ // if this view is already requesting same url, just return it
+                    return convertView;
+                }
+
+                // else cancel this request
+                holder.mImageContainer.cancelRequest();
+                holder.mImageContainer = null;
+            }
         }
 
-        String caption = getItem(position).getCaption();
+
+
         holder.textView.setText(caption);
-        holder.imageView.setImageBitmap(placeholderBitmap);
+//        holder.imageView.setImageBitmap(placeholderBitmap);
+        holder.mImageContainer = VolleySingleton.getInstance(context).getImageLoader().get(url, new ImageLoader.ImageListener() {
+            @Override
+            public void onResponse(ImageLoader.ImageContainer imageContainer, boolean b) {
+                Bitmap bitmap = imageContainer.getBitmap();
+                if(bitmap == null){
+                    holder.imageView.setImageBitmap(placeholderBitmap);
+                } else {
+                    holder.imageView.setImageBitmap(bitmap);
+                }
+
+            }
+
+            @Override
+            public void onErrorResponse(VolleyError volleyError) {
+                    holder.imageView.setImageBitmap(errorBitmap);
+            }
+        });
+
         return convertView;
     }
 
     public static class ViewHolder {
         SquareImageView imageView;
         TextView textView;
+        ImageLoader.ImageContainer mImageContainer;
 
         public ViewHolder(View view){
             imageView = (SquareImageView) view.findViewById(R.id.square_image_view);

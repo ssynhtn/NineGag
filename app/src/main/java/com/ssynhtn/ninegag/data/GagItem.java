@@ -1,9 +1,11 @@
 package com.ssynhtn.ninegag.data;
 
+import java.io.Serializable;
+
 /**
  * Created by ssynhtn on 11/14/2014.
  */
-public class GagItem {
+public class GagItem implements Serializable{
 
     String id;
     String caption;

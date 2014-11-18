@@ -6,5 +6,7 @@
     <string name="action_settings">Settings</string>
     <string name="action_refresh">Refresh</string>
     <string name="action_cancel_refresh">Cancel Loading</string>
+    <string name="title_activity_gag_item">GagItemActivity</string>
+    <string name="action_share">Share</string>
 
 </resources>

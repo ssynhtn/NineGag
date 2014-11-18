@@ -2,7 +2,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.ssynhtn.ninegag" >
 
-    <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.INTERNET" />
 
     <application
         android:allowBackup="true"
@@ -18,6 +18,21 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <activity
+            android:name="com.ssynhtn.ninegag.GagItemActivity"
+            android:label="@string/title_activity_gag_item"
+            android:parentActivityName="com.ssynhtn.ninegag.MainActivity" >
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value="com.ssynhtn.ninegag.MainActivity" />
+        </activity>
+
+        <provider
+            android:name="com.ssynhtn.ninegag.data.GagProvider"
+            android:authorities="com.ssynhtn.ninegag.provider"
+            android:enabled="true"
+            android:exported="false" >
+        </provider>
     </application>
 
 </manifest>
