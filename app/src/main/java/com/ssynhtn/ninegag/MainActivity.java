@@ -1,9 +1,16 @@
 package com.ssynhtn.ninegag;
 
 import android.app.Activity;
+import android.app.FragmentManager;
+import android.app.LoaderManager;
+import android.content.ContentValues;
+import android.content.CursorLoader;
 import android.content.Intent;
+import android.content.Loader;
+import android.database.Cursor;
 import android.os.Bundle;
 import android.support.v4.widget.SwipeRefreshLayout;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -12,11 +19,11 @@ import android.widget.AbsListView;
 import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.ProgressBar;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import com.android.volley.VolleyError;
 import com.etsy.android.grid.StaggeredGridView;
+import com.ssynhtn.ninegag.data.GagContract;
 import com.ssynhtn.ninegag.data.GagItem;
 import com.ssynhtn.ninegag.volley.VolleySingleton;
 
@@ -27,30 +34,29 @@ import butterknife.InjectView;
 
 
 public class MainActivity extends Activity implements AbsListView.OnScrollListener,
-        GagItemDownloader.OnDownloadListener,
+        GagItemDownloaderFragment.OnDownloadListener,
         View.OnClickListener,
         AdapterView.OnItemClickListener,
-        SwipeRefreshLayout.OnRefreshListener{
+        SwipeRefreshLayout.OnRefreshListener,
+        LoaderManager.LoaderCallbacks<Cursor>{
     private static final String TAG = MainActivity.class.getSimpleName();
+
+    private static final String TAG_DOWNLOADER_FRAGMENT = "downloader_fragment";
 
 //    @InjectView(R.id.listView) ListView listView;
     @InjectView(R.id.gridView)
     StaggeredGridView gridView;
-    private MySimpleAdapter adapter;
+    private MyCursorAdapter adapter;
 
     @InjectView(R.id.swipe_refresh_layout)
     SwipeRefreshLayout mSwipeRefreshLayout;
 
-    private TextView loadingTextView;
     private Button tryLoadButton;
     private ProgressBar mProgressBar;
     private int lastLoadingCount = -1;
 
-    private static final String KEY_NEXT_PAGE = "KEY_NEXT_PAGE";
-    private String next;
 
-
-    private GagItemDownloader mDownloader = new GagItemDownloader(this, this);
+    private GagItemDownloaderFragment mDownloader;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -59,9 +65,13 @@ public class MainActivity extends Activity implements AbsListView.OnScrollListen
 
         ButterKnife.inject(this);
 
-        if(savedInstanceState != null){
-            next = savedInstanceState.getString(KEY_NEXT_PAGE, "0");
+        FragmentManager fm = getFragmentManager();
+        mDownloader = (GagItemDownloaderFragment) fm.findFragmentByTag(TAG_DOWNLOADER_FRAGMENT);
+        if(mDownloader == null) {
+            mDownloader = new GagItemDownloaderFragment();
+            fm.beginTransaction().add(mDownloader, TAG_DOWNLOADER_FRAGMENT).commit();
         }
+
 
         mSwipeRefreshLayout.setColorSchemeResources(android.R.color.holo_blue_light,
                 android.R.color.holo_green_light,
@@ -74,23 +84,18 @@ public class MainActivity extends Activity implements AbsListView.OnScrollListen
         View footerView = inflater.inflate(R.layout.grid_view_footer, gridView, false);
         gridView.addFooterView(footerView);
 
-        loadingTextView = (TextView) footerView.findViewById(R.id.loading_text_view);
         mProgressBar = (ProgressBar) footerView.findViewById(R.id.loading_progressBar);
         tryLoadButton = (Button) footerView.findViewById(R.id.button_try_load_again);
         tryLoadButton.setOnClickListener(this);
 
-        adapter = new MySimpleAdapter(this);
+        adapter = new MyCursorAdapter(this, null, 0);
 
         gridView.setAdapter(adapter);
-        gridView.setOnScrollListener(this);
+//        gridView.setOnScrollListener(this);
         gridView.setOnItemClickListener(this);
 
-    }
+        getLoaderManager().initLoader(0, null, this);
 
-    @Override
-    protected void onSaveInstanceState(Bundle outState) {
-        super.onSaveInstanceState(outState);
-        outState.putString(KEY_NEXT_PAGE, next);
     }
 
 
@@ -133,9 +138,16 @@ public class MainActivity extends Activity implements AbsListView.OnScrollListen
     }
 
 
-    private void addItemsToList(List<GagItem> items) {
-        adapter.addAll(items);
+    private void saveItems(List<GagItem> items) {
+        //TODO
+        // add items into the database
+        ContentValues[] values = new ContentValues[items.size()];
+        for(int i = 0; i < items.size(); i++){
+            values[i] = GagItem.toContentValues(items.get(i));
+        }
+        getContentResolver().bulkInsert(GagContract.GagEntry.CONTENT_URI, values);
     }
+
 
     private void cancelLoading(){
         VolleySingleton.getInstance(this).getRequestQueue().cancelAll(this);
@@ -159,6 +171,7 @@ public class MainActivity extends Activity implements AbsListView.OnScrollListen
     public void onScroll(AbsListView view, int firstVisibleItem, int visibleItemCount, int totalItemCount) {
         if(hasReachedEnd(firstVisibleItem, visibleItemCount, totalItemCount) && totalItemCount != lastLoadingCount){ //&& !loading
             lastLoadingCount = totalItemCount;
+            Log.d(TAG, "on scroll now fires download more!");
             mDownloader.downloadMore();
         }
 
@@ -166,12 +179,13 @@ public class MainActivity extends Activity implements AbsListView.OnScrollListen
 
     private boolean hasReachedEnd(int firstVisibleItem, int visibleItemCount, int totalItemCount) {
             // when the last item in list becomes visible, this returns true
-        return firstVisibleItem + visibleItemCount >= totalItemCount;
+        // 1 used to load 1 item quicker than really reach end of list
+        return firstVisibleItem + visibleItemCount + 1 >= totalItemCount;
     }
 
     @Override
     public void onDownloadStart(String page) {
-        if(page.equals(GagItemDownloader.FIRST_PAGE)){
+        if(page.equals(GagItemDownloaderFragment.FIRST_PAGE)){
             mSwipeRefreshLayout.setEnabled(false);
             mSwipeRefreshLayout.setRefreshing(true);
             // fresh from top
@@ -186,19 +200,26 @@ public class MainActivity extends Activity implements AbsListView.OnScrollListen
 
     @Override
     public void onDownloadSuccess(List<GagItem> items, String page, String next) {
-        if(page.equals(GagItemDownloader.FIRST_PAGE)){
+        if(page.equals(GagItemDownloaderFragment.FIRST_PAGE)){
             mSwipeRefreshLayout.setRefreshing(false);
             mSwipeRefreshLayout.setEnabled(true);
+            clearItems();
         } else {
 //            loadingTextView.setVisibility(View.GONE);
             mProgressBar.setVisibility(View.GONE);
         }
-        addItemsToList(items);
+        saveItems(items);
+    }
+
+    private void clearItems() {
+        // TODO
+        // delete all data in database
+        getContentResolver().delete(GagContract.GagEntry.CONTENT_URI, null, null);
     }
 
     @Override
     public void onDownloadFail(VolleyError error, String page) {
-        if(page.equals(GagItemDownloader.FIRST_PAGE)){
+        if(page.equals(GagItemDownloaderFragment.FIRST_PAGE)){
             mSwipeRefreshLayout.setRefreshing(false);
             mSwipeRefreshLayout.setEnabled(true);
         } else {
@@ -214,7 +235,7 @@ public class MainActivity extends Activity implements AbsListView.OnScrollListen
 
     @Override
     public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-        GagItem item = (GagItem) parent.getItemAtPosition(position);
+        GagItem item = ((MyCursorAdapter.ViewHolder)view.getTag()).mGagItem;
         String urlLarge = item.getImageUrlLarge();
         String caption = item.getCaption();
 
@@ -222,11 +243,40 @@ public class MainActivity extends Activity implements AbsListView.OnScrollListen
         intent.putExtra(GagItemActivity.EXTRA_GAG_ITEM, item);
         startActivity(intent);
 
-        Toast.makeText(this, "clicked on item: " + urlLarge + ", caption: " + caption, Toast.LENGTH_SHORT).show();
+//        Toast.makeText(this, "clicked on item: " + urlLarge + ", caption: " + caption, Toast.LENGTH_SHORT).show();
     }
 
     @Override
     public void onRefresh() {
+        Log.d(TAG, "onRefresh");
         mDownloader.downloadFirst();
+    }
+
+    @Override
+    public Loader<Cursor> onCreateLoader(int i, Bundle bundle) {
+        if(i != 0){
+            throw new IllegalArgumentException("unexpected token: " + i);
+        }
+        String[] projection = null;
+        String selection = null;
+        String[] selectionArgs = null;
+        String order = GagContract.GagEntry._ID + " ASC";
+        return new CursorLoader(this, GagContract.GagEntry.CONTENT_URI, projection, selection, selectionArgs, order);
+    }
+
+    @Override
+    public void onLoadFinished(Loader<Cursor> cursorLoader, Cursor cursor) {
+        adapter.swapCursor(cursor);
+
+
+        // only after the stored data is loaded, do we set the listener, so that the listener won't be triggered
+        // when the cursor is null at first
+        gridView.setOnScrollListener(this);
+    }
+
+    @Override
+    public void onLoaderReset(Loader<Cursor> cursorLoader) {
+        adapter.swapCursor(null);
+
     }
 }

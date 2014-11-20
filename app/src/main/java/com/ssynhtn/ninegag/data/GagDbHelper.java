@@ -22,7 +22,7 @@ public class GagDbHelper extends SQLiteOpenHelper {
     public void onCreate(SQLiteDatabase db) {
         String createGagTableSql = "CREATE TABLE " + GagContract.GagEntry.TABLE_NAME + " ("
                 + GagContract.GagEntry._ID + " INTEGER PRIMARY KEY, "
-                + GagContract.GagEntry.COLUMN_ID + " TEXT NOT NULL, "
+                + GagContract.GagEntry.COLUMN_ID + " TEXT NOT NULL UNIQUE ON CONFLICT IGNORE, "
                 + GagContract.GagEntry.COLUMN_CAPTION + " TEXT, "
                 + GagContract.GagEntry.COLUMN_NORMAL_URL + " TEXT NOT NULL, "
                 + GagContract.GagEntry.COLUMN_LARGE_URL + " TEXT NOT NULL"

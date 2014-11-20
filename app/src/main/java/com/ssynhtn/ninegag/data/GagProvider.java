@@ -13,7 +13,7 @@ public class GagProvider extends ContentProvider {
 
     private GagDbHelper mGagDbHelper;
 
-    private static UriMatcher sUriMatcher;
+    private static UriMatcher sUriMatcher = new UriMatcher(UriMatcher.NO_MATCH);
 
     private static final int GAGS = 1;
     private static final int GAG_ITEM = 2;
@@ -21,7 +21,7 @@ public class GagProvider extends ContentProvider {
     // initialize uri matcher
     static {
         sUriMatcher.addURI(GagContract.CONTENT_AUTHORITY, GagContract.GagEntry.PATH, GAGS);
-        sUriMatcher.addURI(GagContract.CONTENT_AUTHORITY, GagContract.GagEntry.PATH, GAG_ITEM);
+        sUriMatcher.addURI(GagContract.CONTENT_AUTHORITY, GagContract.GagEntry.PATH + "/#", GAG_ITEM);
     }
 
 
@@ -40,13 +40,11 @@ public class GagProvider extends ContentProvider {
                 }
 
                 numDeleted = db.delete(GagContract.GagEntry.TABLE_NAME, mySelection, selectionArgs);
-                getContext().getContentResolver().notifyChange(uri, null);
                 break;
             }
 
             case GAGS: {
                 numDeleted = db.delete(GagContract.GagEntry.TABLE_NAME, selection, selectionArgs);
-                getContext().getContentResolver().notifyChange(uri, null);
                 break;
             }
 
@@ -54,6 +52,8 @@ public class GagProvider extends ContentProvider {
                 throw new IllegalArgumentException("Unexpected Uri for delete: " + uri);
         }
 
+        if(numDeleted > 0)
+            getContext().getContentResolver().notifyChange(uri, null);
         return numDeleted;
     }
 
@@ -76,13 +76,15 @@ public class GagProvider extends ContentProvider {
 
         switch(code){
             case GAG_ITEM: {
-                throw new IllegalArgumentException("Can't insert into uri with id, use update instead: " + uri);
+                throw new IllegalArgumentException("Can't insert into uri with _id, use update instead: " + uri);
             }
 
             case GAGS: {
                 long id = db.insert(GagContract.GagEntry.TABLE_NAME, null, values);
-                getContext().getContentResolver().notifyChange(uri, null);
-                res = ContentUris.withAppendedId(GagContract.GagEntry.CONTENT_URI, id);
+                if(id != -1){   // if insert success, there are cases of duplicate insertion that will be ignored, which should return -1 as id
+                    getContext().getContentResolver().notifyChange(uri, null);
+                    res = ContentUris.withAppendedId(GagContract.GagEntry.CONTENT_URI, id);
+                }
                 break;
             }
 
@@ -119,6 +121,7 @@ public class GagProvider extends ContentProvider {
 
             case GAGS: {
                 cursor = db.query(GagContract.GagEntry.TABLE_NAME, projection, selection, selectionArgs, null, null, sortOrder);
+                break;
             }
 
             default: throw new IllegalArgumentException("Unexpected uri: " + uri);
@@ -134,4 +137,27 @@ public class GagProvider extends ContentProvider {
         // TODO: Implement this to handle requests to update one or more rows.
         throw new UnsupportedOperationException("Not yet implemented");
     }
+
+    @Override
+    public int bulkInsert(Uri uri, ContentValues[] values) {
+        SQLiteDatabase db = mGagDbHelper.getWritableDatabase();
+        int numInserted = 0;
+
+        // the sunshine app uses try finally here but I really can't see the advantage to do that?
+        db.beginTransaction();
+        for(ContentValues contentValues : values){
+            long id = db.insert(GagContract.GagEntry.TABLE_NAME, null, contentValues);
+            if(id != -1)
+                numInserted ++;
+        }
+        db.setTransactionSuccessful();
+        db.endTransaction();
+
+        if(numInserted > 0){
+            getContext().getContentResolver().notifyChange(uri, null);
+        }
+        return numInserted;
+    }
+
+
 }

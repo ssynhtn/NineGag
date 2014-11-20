@@ -16,7 +16,7 @@ public class GagContract {
         public static final String TABLE_NAME = "gags";
         public static final String PATH = "gags";
 
-        public static final String COLUMN_ID =  "gag_id";
+        public static final String COLUMN_ID =  "gag_id";   // this id identifies each gag item, and should be unique
         public static final String COLUMN_CAPTION = "caption";
         public static final String COLUMN_NORMAL_URL = "small_url";
         public static final String COLUMN_LARGE_URL = "large_url";

@@ -1,6 +1,7 @@
 package com.ssynhtn.ninegag.data;
 
 import android.content.ContentValues;
+import android.database.Cursor;
 
 import java.io.Serializable;
 
@@ -42,14 +43,24 @@ public class GagItem implements Serializable{
     }
 
 
-    public ContentValues toContentValues(){
+    // assume the cursor is from GagProvider
+    public static GagItem extractFromCursor(Cursor cursor){
+        String id = cursor.getString(cursor.getColumnIndex(GagContract.GagEntry.COLUMN_ID));
+        String caption = cursor.getString(cursor.getColumnIndex(GagContract.GagEntry.COLUMN_CAPTION));
+        String imageUrlNormal = cursor.getString(cursor.getColumnIndex(GagContract.GagEntry.COLUMN_NORMAL_URL));
+        String imageUrlLarge = cursor.getString(cursor.getColumnIndex(GagContract.GagEntry.COLUMN_LARGE_URL));
+
+        return new GagItem(id, caption, imageUrlNormal, imageUrlLarge);
+    }
+
+
+    public static ContentValues toContentValues(GagItem gagItem) {
         ContentValues values = new ContentValues(4);
-        values.put(GagContract.GagEntry.COLUMN_ID, id);
-        values.put(GagContract.GagEntry.COLUMN_CAPTION, caption);
-        values.put(GagContract.GagEntry.COLUMN_NORMAL_URL, imageUrlNormal);
-        values.put(GagContract.GagEntry.COLUMN_LARGE_URL, imageUrlLarge);
+        values.put(GagContract.GagEntry.COLUMN_ID, gagItem.id);
+        values.put(GagContract.GagEntry.COLUMN_CAPTION, gagItem.caption);
+        values.put(GagContract.GagEntry.COLUMN_NORMAL_URL, gagItem.imageUrlNormal);
+        values.put(GagContract.GagEntry.COLUMN_LARGE_URL, gagItem.imageUrlLarge);
 
         return values;
     }
-
 }

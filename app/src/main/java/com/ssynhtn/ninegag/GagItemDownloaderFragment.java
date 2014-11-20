@@ -1,6 +1,9 @@
 package com.ssynhtn.ninegag;
 
-import android.content.Context;
+import android.app.Activity;
+import android.app.Fragment;
+import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.util.Log;
 
 import com.android.volley.Request;
@@ -20,12 +23,11 @@ import java.util.List;
 /**
  * Created by ssynhtn on 11/15/2014.
  */
-public class GagItemDownloader {
+public class GagItemDownloaderFragment extends Fragment {
     private static final String BASE_URL = "http://infinigag-us.aws.af.cm/hot/";
     public static final String FIRST_PAGE = "0";
-    private static final String TAG = GagItemDownloader.class.getSimpleName();
-
-    private Context context;
+    private static final String TAG = GagItemDownloaderFragment.class.getSimpleName();
+    private static final String KEY_NEXT = "KEY_NEXT";
 
     private String next;
     private OnDownloadListener mListener;
@@ -33,9 +35,32 @@ public class GagItemDownloader {
     private boolean loading;
 //    private boolean lastLoadFailed;
 
-    public GagItemDownloader(Context context, OnDownloadListener listener) {
-        this.context = context;
-        mListener = listener;
+//    public GagItemDownloaderFragment(Context context, OnDownloadListener listener) {
+//        this.context = context;
+//        mListener = listener;
+//    }
+
+
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        next = PreferenceManager.getDefaultSharedPreferences(getActivity()).getString(KEY_NEXT, FIRST_PAGE);
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        PreferenceManager.getDefaultSharedPreferences(getActivity()).edit().putString(KEY_NEXT, next).commit();
+    }
+
+    @Override
+    public void onAttach(Activity activity) {
+        super.onAttach(activity);
+        try{
+            this.mListener = (OnDownloadListener) activity;
+        } catch (ClassCastException e){
+            Log.e(TAG, "class " + activity.getClass() + " must implement " + OnDownloadListener.class + " interface");
+        }
     }
 
     public static interface OnDownloadListener {
@@ -58,7 +83,12 @@ public class GagItemDownloader {
     }
 
     private void downloadMore(final String page){
-        if(loading) return;
+        if(loading) {
+            Log.d(TAG, "try loading page: " + page + " but is already loading, cancelled");
+            return;
+        } else {
+            Log.d(TAG, "try loading page: " + page);
+        }
 
         String url = BASE_URL + page;
         JsonObjectRequest request = new JsonObjectRequest(Request.Method.GET, url, null,
@@ -74,6 +104,9 @@ public class GagItemDownloader {
                         String nextPage = extractNext(jsonObject);
                         if(nextPage != null){
                             next = nextPage;
+                            Log.d(TAG,  "next page is: " + next);
+                        } else {
+                            throw new RuntimeException("next page is null!");
                         }
 
                         mListener.onDownloadSuccess(items, page, nextPage);
@@ -94,7 +127,7 @@ public class GagItemDownloader {
 
         loading = true;
         mListener.onDownloadStart(page);
-        VolleySingleton.getInstance(context).addToRequestQueue(request);
+        VolleySingleton.getInstance(getActivity()).addToRequestQueue(request);
 
     }
 
