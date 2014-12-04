@@ -3,7 +3,6 @@ package com.ssynhtn.ninegag;
 import android.app.Activity;
 import android.app.FragmentManager;
 import android.app.LoaderManager;
-import android.content.AsyncQueryHandler;
 import android.content.ContentValues;
 import android.content.CursorLoader;
 import android.content.Intent;
@@ -64,7 +63,6 @@ public class MainActivity extends Activity implements AbsListView.OnScrollListen
 
     private GagItemDownloaderFragment mDownloader;
 
-    private AsyncQueryHandler mAsyncQueryHandler;
     private boolean mInserting; // when downloaded item is being inserted into database
 
 //    private int mColumnCount;
@@ -220,15 +218,6 @@ public class MainActivity extends Activity implements AbsListView.OnScrollListen
 
         new BulkInsertTask(values, page).execute();
     }
-//
-//    private AsyncQueryHandler getAsyncQueryHandler(){
-//        if(mAsyncQueryHandler == null){
-//            mAsyncQueryHandler = new AsyncQueryHandler(getContentResolver()) {};
-//        }
-//
-//        return mAsyncQueryHandler;
-//    }
-
 
     @Override
     public void onDownloadFail(VolleyError error, String page) {
