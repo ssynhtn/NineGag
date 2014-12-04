@@ -1,6 +1,7 @@
 package com.ssynhtn.ninegag;
 
 import android.content.Context;
+import android.content.res.Resources;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -16,18 +17,45 @@ import com.ssynhtn.ninegag.data.GagItem;
 import com.ssynhtn.ninegag.view.SquareImageView;
 import com.ssynhtn.ninegag.volley.VolleySingleton;
 
+import java.util.Random;
+
 /**
  * Created by ssynhtn on 11/20/2014.
  */
 public class MyCursorAdapter extends CursorAdapter {
 
-    private Bitmap mPlaceholderBitmap;
+    public static final Random sRandom = new Random();
+
+    private Bitmap[] mColorBitmaps;
+//    private Bitmap mPlaceholderBitmap;
     private Bitmap mErrorBitmap;
+
+    private Context mContext;
 
     public MyCursorAdapter(Context context, Cursor c, int flags) {
         super(context, c, flags);
-        mPlaceholderBitmap = BitmapFactory.decodeResource(context.getResources(), R.drawable.ic_launcher);
+        mContext = context;
+
+//        mPlaceholderBitmap = BitmapFactory.decodeResource(context.getResources(), R.drawable.ic_launcher);
         mErrorBitmap = BitmapFactory.decodeResource(context.getResources(), R.drawable.empty_photo);
+        createColorBitmaps();
+    }
+
+    private void createColorBitmaps() {
+        int[] colorIds = {android.R.color.holo_blue_light,
+            android.R.color.holo_red_light,
+            android.R.color.holo_green_light,
+            android.R.color.holo_orange_light};
+
+        mColorBitmaps = new Bitmap[colorIds.length];
+
+        Resources res = mContext.getResources();
+        for(int i = 0; i < colorIds.length; i++){
+            int color = res.getColor(colorIds[i]);
+            Bitmap bitmap = Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888);
+            bitmap.setPixel(0, 0, color);
+            mColorBitmaps[i] = bitmap;
+        }
     }
 
 
@@ -61,7 +89,7 @@ public class MyCursorAdapter extends CursorAdapter {
                     public void onResponse(ImageLoader.ImageContainer imageContainer, boolean b) {
                         Bitmap bitmap = null;
                         if((bitmap = imageContainer.getBitmap()) == null){
-                            bitmap = mPlaceholderBitmap;
+                            bitmap = getRandomColorBitmap();
                         }
                         holder.imageView.setImageBitmap(bitmap);
                     }
@@ -86,5 +114,10 @@ public class MyCursorAdapter extends CursorAdapter {
             textView = (TextView) view.findViewById(R.id.caption_text_view);
         }
 
+    }
+
+    public Bitmap getRandomColorBitmap(){
+        int index = sRandom.nextInt(mColorBitmaps.length);
+        return mColorBitmaps[index];
     }
 }

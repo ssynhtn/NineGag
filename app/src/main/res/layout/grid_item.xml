@@ -14,7 +14,6 @@
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Start New Text New Text New Text New Text New Text New Text New Text New Text New Text New Text New Text New Text New Text New Text New Text End"
         android:id="@+id/caption_text_view"
         android:lines="2"
         android:ellipsize="end"

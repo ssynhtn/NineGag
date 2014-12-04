@@ -97,6 +97,9 @@ public class GagItemActivity extends Activity implements PhotoViewAttacher.OnVie
                     }
                 }, MAX_WIDTH, MAX_HEIGHT);
 
+        ImageLoader imageLoader = VolleySingleton.getInstance(this).getImageLoader();
+//        imageLoader.getImageListener(null, )
+
 
         String caption = mGagItem.getCaption();
         mCaptionTextView.setText(caption);
