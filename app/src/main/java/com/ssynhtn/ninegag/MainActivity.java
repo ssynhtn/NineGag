@@ -3,11 +3,13 @@ package com.ssynhtn.ninegag;
 import android.app.Activity;
 import android.app.FragmentManager;
 import android.app.LoaderManager;
+import android.content.AsyncQueryHandler;
 import android.content.ContentValues;
 import android.content.CursorLoader;
 import android.content.Intent;
 import android.content.Loader;
 import android.database.Cursor;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.support.v4.widget.SwipeRefreshLayout;
@@ -61,6 +63,8 @@ public class MainActivity extends Activity implements AbsListView.OnScrollListen
     private ProgressBar mProgressBar;
 
     private GagItemDownloaderFragment mDownloader;
+
+    private AsyncQueryHandler mAsyncQueryHandler;
 
 //    private int mColumnCount;
 
@@ -183,7 +187,10 @@ public class MainActivity extends Activity implements AbsListView.OnScrollListen
         for(int i = 0; i < items.size(); i++){
             values[i] = GagItem.toContentValues(items.get(i));
         }
-        getContentResolver().bulkInsert(GagContract.GagEntry.CONTENT_URI, values);
+
+        // should be done in background
+        new BulkInsertTask(values).execute();
+//        getContentResolver().bulkInsert(GagContract.GagEntry.CONTENT_URI, values);
     }
 
 
@@ -258,10 +265,18 @@ public class MainActivity extends Activity implements AbsListView.OnScrollListen
         Toast.makeText(this, "onDownloadSuccess", Toast.LENGTH_SHORT).show();
     }
 
+    private AsyncQueryHandler getAsyncQueryHandler(){
+        if(mAsyncQueryHandler == null){
+            mAsyncQueryHandler = new AsyncQueryHandler(getContentResolver()) {};
+        }
+
+        return mAsyncQueryHandler;
+    }
+
+
     private void clearItems() {
-        // TODO
-        // delete all data in database
-        getContentResolver().delete(GagContract.GagEntry.CONTENT_URI, null, null);
+        getAsyncQueryHandler().startDelete(0, null, GagContract.GagEntry.CONTENT_URI, null, null);
+//        getContentResolver().delete(GagContract.GagEntry.CONTENT_URI, null, null);
     }
 
     @Override
@@ -283,8 +298,6 @@ public class MainActivity extends Activity implements AbsListView.OnScrollListen
     @Override
     public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
         GagItem item = ((MyCursorAdapter.ViewHolder)view.getTag()).mGagItem;
-        String urlLarge = item.getImageUrlLarge();
-        String caption = item.getCaption();
 
         Intent intent = new Intent(this,GagItemActivity.class);
         intent.putExtra(GagItemActivity.EXTRA_GAG_ITEM, item);
@@ -325,5 +338,20 @@ public class MainActivity extends Activity implements AbsListView.OnScrollListen
     public void onLoaderReset(Loader<Cursor> cursorLoader) {
         adapter.swapCursor(null);
 
+    }
+
+    public class BulkInsertTask extends AsyncTask<Void, Void, Void>{
+
+        private ContentValues[] values;
+        public BulkInsertTask(ContentValues[] values) {
+            super();
+            this.values = values;
+        }
+
+        @Override
+        protected Void doInBackground(Void... params) {
+            getContentResolver().bulkInsert(GagContract.GagEntry.CONTENT_URI, values);
+            return null;
+        }
     }
 }
