@@ -3,9 +3,7 @@ package com.ssynhtn.ninegag;
 import android.app.Activity;
 import android.content.Intent;
 import android.graphics.Bitmap;
-import android.net.Uri;
 import android.os.Bundle;
-import android.os.Environment;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -20,11 +18,8 @@ import android.widget.Toast;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.ImageLoader;
 import com.ssynhtn.ninegag.data.GagItem;
+import com.ssynhtn.ninegag.service.SaveImageFileService;
 import com.ssynhtn.ninegag.volley.VolleySingleton;
-
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
 
 import butterknife.ButterKnife;
 import butterknife.InjectView;
@@ -97,9 +92,6 @@ public class GagItemActivity extends Activity implements PhotoViewAttacher.OnVie
                     }
                 }, MAX_WIDTH, MAX_HEIGHT);
 
-        ImageLoader imageLoader = VolleySingleton.getInstance(this).getImageLoader();
-//        imageLoader.getImageListener(null, )
-
 
         String caption = mGagItem.getCaption();
         mCaptionTextView.setText(caption);
@@ -162,58 +154,16 @@ public class GagItemActivity extends Activity implements PhotoViewAttacher.OnVie
     }
 
     private void downloadImage() {
-        ImageLoader imageLoader = VolleySingleton.getInstance(this).getImageLoader();
-        showToast("start downloading");
-        imageLoader.get(mGagItem.getImageUrlLarge(), new ImageLoader.ImageListener() {
-            @Override
-            public void onResponse(ImageLoader.ImageContainer imageContainer, boolean b) {
-                Bitmap bm = null;
-                if((bm = imageContainer.getBitmap()) != null){
-                    try {
-                        saveBitmapToDisk(bm);
-                        showToast("download success!");
-                    } catch (IOException e) {
-                        showToast("failed to save file to disk");
-                    }
-                }
-            }
-
-            @Override
-            public void onErrorResponse(VolleyError volleyError) {
-                showToast("failed to download image...");
-            }
-        });
+        Intent intent = new Intent(this, SaveImageFileService.class);
+        intent.putExtra(SaveImageFileService.EXTRA_GAGITEM, mGagItem);
+        startService(intent);
     }
 
-    private void showToast(String s) {
-        if(mToast != null){
-            mToast.cancel();
-        }
-
-        mToast = Toast.makeText(this, s, Toast.LENGTH_SHORT);
-        mToast.show();
-    }
-
-    // currently don't care about overriding user images... which is bad
-    private void saveBitmapToDisk(Bitmap bitmap) throws IOException {
-//        String filename = String.format(mGagItem.hashCode() + ".png");
-        String filename = mGagItem.getCaption() + ".png";
-        File picturesDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES);
-        picturesDir.mkdirs();     // make sure the dir is there
-        File file = new File(picturesDir, filename);
-        FileOutputStream out = new FileOutputStream(file);
-        bitmap.compress(Bitmap.CompressFormat.PNG, 100, out);
-        out.close();
-
-        // notify media scanner
-        Intent mediaScanIntent = new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE , Uri.fromFile(file));
-        sendBroadcast(mediaScanIntent);
-
-    }
 
 
     @Override
     public void onViewTap(View view, float v, float v2) {
         toggleWidgetsVisibility();
     }
+
 }

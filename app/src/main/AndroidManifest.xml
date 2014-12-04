@@ -3,7 +3,7 @@
     package="com.ssynhtn.ninegag" >
 
     <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
 
     <application
         android:allowBackup="true"
@@ -39,6 +39,11 @@
             android:name="com.ssynhtn.ninegag.SettingsActivity"
             android:label="@string/title_activity_settings" >
         </activity>
+
+        <service
+            android:name="com.ssynhtn.ninegag.service.SaveImageFileService"
+            android:exported="false" >
+        </service>
     </application>
 
 </manifest>
