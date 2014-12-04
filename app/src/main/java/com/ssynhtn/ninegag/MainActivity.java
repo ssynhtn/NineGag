@@ -65,6 +65,7 @@ public class MainActivity extends Activity implements AbsListView.OnScrollListen
     private GagItemDownloaderFragment mDownloader;
 
     private AsyncQueryHandler mAsyncQueryHandler;
+    private boolean mInserting; // when downloaded item is being inserted into database
 
 //    private int mColumnCount;
 
@@ -116,18 +117,6 @@ public class MainActivity extends Activity implements AbsListView.OnScrollListen
     }
 
 
-    // for some reason this will cause strange bad layout in the gridview, but when set in settings and go back, this will do fine!
-//    @Override
-//    protected void onStart() {
-//        super.onStart();
-//        int columnCount = Integer.parseInt(PreferenceManager.getDefaultSharedPreferences(this).getString(getString(R.string.key_num_columns),
-//                getString(R.string.default_num_columns)));
-////        if(columnCount != mColumnCount){
-////            mColumnCount = columnCount;
-////            gridView.setColumnCount(mColumnCount);
-////        }
-//        gridView.setColumnCount(columnCount);
-//    }
 
     public void onClick(View view){
         if(view.getId() == R.id.button_try_load_again)
@@ -156,19 +145,6 @@ public class MainActivity extends Activity implements AbsListView.OnScrollListen
             startActivity(intent);
             return true;
         }
-//        else if(id == R.id.action_refresh){
-//            mDownloader.downloadMore();
-//            return true;
-//        }
-//        else if(id == R.id.action_cancel_refresh){
-//            cancelLoading();
-//            return true;
-//        }
-//        else if(id == R.id.action_clear_database){
-//            clearDatabase();
-//            return true;
-//        }
-
         return super.onOptionsItemSelected(item);
     }
 
@@ -180,18 +156,7 @@ public class MainActivity extends Activity implements AbsListView.OnScrollListen
     }
 
 
-    private void saveItems(List<GagItem> items) {
-        //TODO
-        // add items into the database
-        ContentValues[] values = new ContentValues[items.size()];
-        for(int i = 0; i < items.size(); i++){
-            values[i] = GagItem.toContentValues(items.get(i));
-        }
 
-        // should be done in background
-        new BulkInsertTask(values).execute();
-//        getContentResolver().bulkInsert(GagContract.GagEntry.CONTENT_URI, values);
-    }
 
 
     private void cancelLoading(){
@@ -215,14 +180,10 @@ public class MainActivity extends Activity implements AbsListView.OnScrollListen
     @Override
     public void onScroll(AbsListView view, int firstVisibleItem, int visibleItemCount, int totalItemCount) {
 
-        if(visibleItemCount != 0
+        if(!mInserting && visibleItemCount != 0
                 && totalItemCount != gridView.getHeaderViewsCount() + gridView.getFooterViewsCount()
                 && hasReachedEnd(firstVisibleItem, visibleItemCount, totalItemCount)){ //&& !loading
-//            Log.d(TAG, "onScroll and has reached end, the integers are, firstVisibleItem: " + firstVisibleItem + " visibleItemCount: " + visibleItemCount + " totalItemCount: " + totalItemCount);
-//            Log.d(TAG, "on scroll now fires download more!");
             mDownloader.downloadMore();
-        } else {
-//            Log.d(TAG, "onScroll, the integers are, firstVisibleItem: " + firstVisibleItem + " visibleItemCount: " + visibleItemCount + " totalItemCount: " + totalItemCount);
         }
 
     }
@@ -252,32 +213,22 @@ public class MainActivity extends Activity implements AbsListView.OnScrollListen
 
     @Override
     public void onDownloadSuccess(List<GagItem> items, String page, String next) {
-        if(page.equals(GagItemDownloaderFragment.FIRST_PAGE)){
-            mSwipeRefreshLayout.setRefreshing(false);
-            mSwipeRefreshLayout.setEnabled(true);
-            clearItems();
-        } else {
-            mLinearLayout.setVisibility(View.GONE);
-            mProgressBar.setVisibility(View.GONE);
-        }
-        saveItems(items);
-
-        Toast.makeText(this, "onDownloadSuccess", Toast.LENGTH_SHORT).show();
-    }
-
-    private AsyncQueryHandler getAsyncQueryHandler(){
-        if(mAsyncQueryHandler == null){
-            mAsyncQueryHandler = new AsyncQueryHandler(getContentResolver()) {};
+        ContentValues[] values = new ContentValues[items.size()];
+        for(int i = 0; i < items.size(); i++){
+            values[i] = GagItem.toContentValues(items.get(i));
         }
 
-        return mAsyncQueryHandler;
+        new BulkInsertTask(values, page).execute();
     }
+//
+//    private AsyncQueryHandler getAsyncQueryHandler(){
+//        if(mAsyncQueryHandler == null){
+//            mAsyncQueryHandler = new AsyncQueryHandler(getContentResolver()) {};
+//        }
+//
+//        return mAsyncQueryHandler;
+//    }
 
-
-    private void clearItems() {
-        getAsyncQueryHandler().startDelete(0, null, GagContract.GagEntry.CONTENT_URI, null, null);
-//        getContentResolver().delete(GagContract.GagEntry.CONTENT_URI, null, null);
-    }
 
     @Override
     public void onDownloadFail(VolleyError error, String page) {
@@ -343,15 +294,39 @@ public class MainActivity extends Activity implements AbsListView.OnScrollListen
     public class BulkInsertTask extends AsyncTask<Void, Void, Void>{
 
         private ContentValues[] values;
-        public BulkInsertTask(ContentValues[] values) {
+        private String page;
+        public BulkInsertTask(ContentValues[] values, String page) {
             super();
             this.values = values;
+            this.page = page;
+        }
+
+        @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
+            mInserting = true;
         }
 
         @Override
         protected Void doInBackground(Void... params) {
+            if(page.equals(GagItemDownloaderFragment.FIRST_PAGE)){
+                getContentResolver().delete(GagContract.GagEntry.CONTENT_URI, null, null);
+            }
             getContentResolver().bulkInsert(GagContract.GagEntry.CONTENT_URI, values);
             return null;
+        }
+
+        @Override
+        protected void onPostExecute(Void aVoid) {
+            super.onPostExecute(aVoid);
+            mInserting = false;
+            if(page.equals(GagItemDownloaderFragment.FIRST_PAGE)){
+                mSwipeRefreshLayout.setRefreshing(false);
+                mSwipeRefreshLayout.setEnabled(true);
+            } else {
+                mLinearLayout.setVisibility(View.GONE);
+                mProgressBar.setVisibility(View.GONE);
+            }
         }
     }
 }
