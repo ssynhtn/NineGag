@@ -205,7 +205,7 @@ public class MainActivity extends Activity implements AbsListView.OnScrollListen
 
         }
 
-        Toast.makeText(this, "onDownloadStart", Toast.LENGTH_SHORT).show();
+//        Toast.makeText(this, "onDownloadStart", Toast.LENGTH_SHORT).show();
 
     }
 
@@ -231,7 +231,7 @@ public class MainActivity extends Activity implements AbsListView.OnScrollListen
         }
 
 
-        Toast.makeText(this, "loading failed " + error, Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, "loading failed", Toast.LENGTH_SHORT).show();
     }
 
 
