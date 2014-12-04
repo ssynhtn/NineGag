@@ -26,7 +26,7 @@ import java.util.List;
 public class GagItemDownloaderFragment extends Fragment {
     private static final String BASE_URL = "http://infinigag-us.aws.af.cm/hot/";
     public static final String FIRST_PAGE = "0";
-    private static final String TAG = GagItemDownloaderFragment.class.getSimpleName();
+    private static final String TAG = MainActivity.class.getSimpleName();
     private static final String KEY_NEXT = "KEY_NEXT";
 
     private String next;
@@ -41,16 +41,23 @@ public class GagItemDownloaderFragment extends Fragment {
 //    }
 
 
+    public GagItemDownloaderFragment() {
+        super();
+        setRetainInstance(true);
+    }
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         next = PreferenceManager.getDefaultSharedPreferences(getActivity()).getString(KEY_NEXT, FIRST_PAGE);
+        Log.d(TAG, "Fragment onCreate, get next: " + next);
     }
 
     @Override
     public void onDestroy() {
         super.onDestroy();
         PreferenceManager.getDefaultSharedPreferences(getActivity()).edit().putString(KEY_NEXT, next).commit();
+        Log.d(TAG, "Fragment onDestroy, saving next: " + next);
     }
 
     @Override
@@ -167,5 +174,11 @@ public class GagItemDownloaderFragment extends Fragment {
         return items;
     }
 
+
+    public void restoreNext(){
+        VolleySingleton.getInstance(getActivity()).getRequestQueue().cancelAll(this);
+        loading = false;
+        next = FIRST_PAGE;
+    }
 
 }

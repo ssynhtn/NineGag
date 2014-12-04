@@ -8,5 +8,27 @@
     <string name="action_cancel_refresh">Cancel Loading</string>
     <string name="title_activity_gag_item">GagItemActivity</string>
     <string name="action_share">Share</string>
+    <string name="clear_database">Clear Database</string>
+    <string name="action_download">Download</string>
+    <string name="key_num_columns">key_num_columns</string>
+    <string name="title_num_columns">Number of Columns</string>
+    <string name="summary_num_columns">Number of Columns</string>
+
+    <string-array name="num_columns_display">
+        <item>One</item>
+        <item>Two</item>
+        <item>Three</item>
+        <item>Four</item>
+    </string-array>
+
+    <string-array name="num_columns_values">
+        <item>1</item>
+        <item>2</item>
+        <item>3</item>
+        <item>4</item>
+    </string-array>
+
+    <string name="default_num_columns">2</string>
+    <string name="title_activity_settings">SettingsActivity</string>
 
 </resources>

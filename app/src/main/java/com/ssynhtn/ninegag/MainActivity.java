@@ -9,6 +9,7 @@ import android.content.Intent;
 import android.content.Loader;
 import android.database.Cursor;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.support.v4.widget.SwipeRefreshLayout;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -18,6 +19,7 @@ import android.view.View;
 import android.widget.AbsListView;
 import android.widget.AdapterView;
 import android.widget.Button;
+import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.Toast;
 
@@ -33,6 +35,9 @@ import butterknife.ButterKnife;
 import butterknife.InjectView;
 
 
+// after a bunch of test, the only conclusion I can get is that: with footer view added, the staggered grid view
+// can't give a consistent onScroll parameter, it mostly gives 1 more when entering the app, but gives exactly 0 when exiting
+// should try to avoid the footer view wholly
 public class MainActivity extends Activity implements AbsListView.OnScrollListener,
         GagItemDownloaderFragment.OnDownloadListener,
         View.OnClickListener,
@@ -51,12 +56,13 @@ public class MainActivity extends Activity implements AbsListView.OnScrollListen
     @InjectView(R.id.swipe_refresh_layout)
     SwipeRefreshLayout mSwipeRefreshLayout;
 
+    private LinearLayout mLinearLayout;
     private Button tryLoadButton;
     private ProgressBar mProgressBar;
-    private int lastLoadingCount = -1;
-
 
     private GagItemDownloaderFragment mDownloader;
+
+//    private int mColumnCount;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -64,6 +70,10 @@ public class MainActivity extends Activity implements AbsListView.OnScrollListen
         setContentView(R.layout.activity_main);
 
         ButterKnife.inject(this);
+
+        PreferenceManager.setDefaultValues(this, R.xml.preferences, false);
+//        mColumnCount = Integer.parseInt(PreferenceManager.getDefaultSharedPreferences(this).getString(getString(R.string.key_num_columns),
+//                getString(R.string.default_num_columns)));
 
         FragmentManager fm = getFragmentManager();
         mDownloader = (GagItemDownloaderFragment) fm.findFragmentByTag(TAG_DOWNLOADER_FRAGMENT);
@@ -84,6 +94,8 @@ public class MainActivity extends Activity implements AbsListView.OnScrollListen
         View footerView = inflater.inflate(R.layout.grid_view_footer, gridView, false);
         gridView.addFooterView(footerView);
 
+
+        mLinearLayout = (LinearLayout) footerView.findViewById(R.id.loading_status);
         mProgressBar = (ProgressBar) footerView.findViewById(R.id.loading_progressBar);
         tryLoadButton = (Button) footerView.findViewById(R.id.button_try_load_again);
         tryLoadButton.setOnClickListener(this);
@@ -91,14 +103,27 @@ public class MainActivity extends Activity implements AbsListView.OnScrollListen
         adapter = new MyCursorAdapter(this, null, 0);
 
         gridView.setAdapter(adapter);
-//        gridView.setOnScrollListener(this);
+        gridView.setOnScrollListener(this);
         gridView.setOnItemClickListener(this);
+//        gridView.setColumnCount(mColumnCount);
 
         getLoaderManager().initLoader(0, null, this);
 
     }
 
 
+    // for some reason this will cause strange bad layout in the gridview, but when set in settings and go back, this will do fine!
+//    @Override
+//    protected void onStart() {
+//        super.onStart();
+//        int columnCount = Integer.parseInt(PreferenceManager.getDefaultSharedPreferences(this).getString(getString(R.string.key_num_columns),
+//                getString(R.string.default_num_columns)));
+////        if(columnCount != mColumnCount){
+////            mColumnCount = columnCount;
+////            gridView.setColumnCount(mColumnCount);
+////        }
+//        gridView.setColumnCount(columnCount);
+//    }
 
     public void onClick(View view){
         if(view.getId() == R.id.button_try_load_again)
@@ -123,18 +148,31 @@ public class MainActivity extends Activity implements AbsListView.OnScrollListen
 
         //noinspection SimplifiableIfStatement
         if (id == R.id.action_settings) {
+            Intent intent = new Intent(this, SettingsActivity.class);
+            startActivity(intent);
             return true;
         }
-        else if(id == R.id.action_refresh){
-            mDownloader.downloadMore();
-            return true;
-        }
-        else if(id == R.id.action_cancel_refresh){
-            cancelLoading();
-            return true;
-        }
+//        else if(id == R.id.action_refresh){
+//            mDownloader.downloadMore();
+//            return true;
+//        }
+//        else if(id == R.id.action_cancel_refresh){
+//            cancelLoading();
+//            return true;
+//        }
+//        else if(id == R.id.action_clear_database){
+//            clearDatabase();
+//            return true;
+//        }
 
         return super.onOptionsItemSelected(item);
+    }
+
+    // for debug only, if call this when the loading is in progress, the data will be all deleted and ongoing loading will be cancelled
+    // but then the onLoadFailed won't be called, the progress bar will hang there forever
+    private void clearDatabase() {
+        getContentResolver().delete(GagContract.GagEntry.CONTENT_URI, null, null);
+        mDownloader.restoreNext();
     }
 
 
@@ -169,10 +207,15 @@ public class MainActivity extends Activity implements AbsListView.OnScrollListen
     // for the time being, if the internet is not available, this would cause endless trying to load...
     @Override
     public void onScroll(AbsListView view, int firstVisibleItem, int visibleItemCount, int totalItemCount) {
-        if(hasReachedEnd(firstVisibleItem, visibleItemCount, totalItemCount) && totalItemCount != lastLoadingCount){ //&& !loading
-            lastLoadingCount = totalItemCount;
-            Log.d(TAG, "on scroll now fires download more!");
+
+        if(visibleItemCount != 0
+                && totalItemCount != gridView.getHeaderViewsCount() + gridView.getFooterViewsCount()
+                && hasReachedEnd(firstVisibleItem, visibleItemCount, totalItemCount)){ //&& !loading
+//            Log.d(TAG, "onScroll and has reached end, the integers are, firstVisibleItem: " + firstVisibleItem + " visibleItemCount: " + visibleItemCount + " totalItemCount: " + totalItemCount);
+//            Log.d(TAG, "on scroll now fires download more!");
             mDownloader.downloadMore();
+        } else {
+//            Log.d(TAG, "onScroll, the integers are, firstVisibleItem: " + firstVisibleItem + " visibleItemCount: " + visibleItemCount + " totalItemCount: " + totalItemCount);
         }
 
     }
@@ -190,11 +233,13 @@ public class MainActivity extends Activity implements AbsListView.OnScrollListen
             mSwipeRefreshLayout.setRefreshing(true);
             // fresh from top
         } else {
-//            loadingTextView.setVisibility(View.VISIBLE);
+            mLinearLayout.setVisibility(View.VISIBLE);
             mProgressBar.setVisibility(View.VISIBLE);
             tryLoadButton.setVisibility(View.GONE);
 
         }
+
+        Toast.makeText(this, "onDownloadStart", Toast.LENGTH_SHORT).show();
 
     }
 
@@ -205,10 +250,12 @@ public class MainActivity extends Activity implements AbsListView.OnScrollListen
             mSwipeRefreshLayout.setEnabled(true);
             clearItems();
         } else {
-//            loadingTextView.setVisibility(View.GONE);
+            mLinearLayout.setVisibility(View.GONE);
             mProgressBar.setVisibility(View.GONE);
         }
         saveItems(items);
+
+        Toast.makeText(this, "onDownloadSuccess", Toast.LENGTH_SHORT).show();
     }
 
     private void clearItems() {
@@ -223,8 +270,8 @@ public class MainActivity extends Activity implements AbsListView.OnScrollListen
             mSwipeRefreshLayout.setRefreshing(false);
             mSwipeRefreshLayout.setEnabled(true);
         } else {
+            mLinearLayout.setVisibility(View.VISIBLE);
             tryLoadButton.setVisibility(View.VISIBLE);
-//            loadingTextView.setVisibility(View.GONE);
             mProgressBar.setVisibility(View.GONE);
         }
 
@@ -271,7 +318,7 @@ public class MainActivity extends Activity implements AbsListView.OnScrollListen
 
         // only after the stored data is loaded, do we set the listener, so that the listener won't be triggered
         // when the cursor is null at first
-        gridView.setOnScrollListener(this);
+//        gridView.setOnScrollListener(this);
     }
 
     @Override

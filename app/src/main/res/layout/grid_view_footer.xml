@@ -3,7 +3,8 @@
               android:id="@+id/loading_status"
               android:orientation="vertical"
               android:layout_width="fill_parent"
-              android:layout_height="wrap_content">
+              android:layout_height="wrap_content"
+              android:visibility="gone">
 
     <ProgressBar
         android:id="@+id/loading_progressBar"
@@ -14,14 +15,6 @@
         android:paddingTop="4dp"
         android:paddingBottom="4dp"
         android:visibility="gone"/>
-
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Loading...."
-        android:gravity="center"
-        android:visibility="gone"
-        android:id="@+id/loading_text_view"/>
 
     <Button
         android:layout_width="match_parent"
