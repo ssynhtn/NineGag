@@ -2,7 +2,9 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
               android:orientation="vertical"
               android:layout_width="match_parent"
-              android:layout_height="match_parent">
+              android:layout_height="match_parent"
+              android:background="@drawable/picture_frame"
+              >
 
     <com.ssynhtn.ninegag.view.SquareImageView
         android:id="@+id/square_image_view"
@@ -20,6 +22,8 @@
         android:gravity="left|center_vertical"
         android:textAppearance="?android:attr/textAppearanceMedium"
         android:minHeight="?android:attr/listPreferredItemHeightSmall"
+        android:paddingLeft="8dp"
+        android:text="@string/hello_world"
         />
 
 
