@@ -49,7 +49,6 @@ public class MainActivity extends Activity implements AbsListView.OnScrollListen
 
     private static final String TAG_DOWNLOADER_FRAGMENT = "downloader_fragment";
 
-//    @InjectView(R.id.listView) ListView listView;
     @InjectView(R.id.gridView)
     StaggeredGridView gridView;
     private MyCursorAdapter adapter;
@@ -205,8 +204,6 @@ public class MainActivity extends Activity implements AbsListView.OnScrollListen
 
         }
 
-//        Toast.makeText(this, "onDownloadStart", Toast.LENGTH_SHORT).show();
-
     }
 
     @Override
@@ -266,7 +263,13 @@ public class MainActivity extends Activity implements AbsListView.OnScrollListen
 
     @Override
     public void onLoadFinished(Loader<Cursor> cursorLoader, Cursor cursor) {
-        adapter.swapCursor(cursor);
+        if(cursor != null && cursor.getCount() > 0){
+            adapter.swapCursor(cursor);
+        } else {
+            Log.d(TAG, "empty cursor, do a total refresh");
+            onRefresh();
+        }
+
 
 
         // only after the stored data is loaded, do we set the listener, so that the listener won't be triggered
@@ -277,8 +280,8 @@ public class MainActivity extends Activity implements AbsListView.OnScrollListen
     @Override
     public void onLoaderReset(Loader<Cursor> cursorLoader) {
         adapter.swapCursor(null);
-
     }
+
 
     public class BulkInsertTask extends AsyncTask<Void, Void, Void>{
 
