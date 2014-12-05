@@ -7,6 +7,7 @@ import android.content.ContentValues;
 import android.content.CursorLoader;
 import android.content.Intent;
 import android.content.Loader;
+import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -64,7 +65,7 @@ public class MainActivity extends Activity implements AbsListView.OnScrollListen
 
     private boolean mInserting; // when downloaded item is being inserted into database
 
-//    private int mColumnCount;
+    private int mColumnCount;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -74,8 +75,8 @@ public class MainActivity extends Activity implements AbsListView.OnScrollListen
         ButterKnife.inject(this);
 
         PreferenceManager.setDefaultValues(this, R.xml.preferences, false);
-//        mColumnCount = Integer.parseInt(PreferenceManager.getDefaultSharedPreferences(this).getString(getString(R.string.key_num_columns),
-//                getString(R.string.default_num_columns)));
+        mColumnCount = readColumnCountFromPrefs();
+        Log.d(TAG, "on create, column count: " + mColumnCount);
 
         FragmentManager fm = getFragmentManager();
         mDownloader = (GagItemDownloaderFragment) fm.findFragmentByTag(TAG_DOWNLOADER_FRAGMENT);
@@ -107,13 +108,31 @@ public class MainActivity extends Activity implements AbsListView.OnScrollListen
         gridView.setAdapter(adapter);
         gridView.setOnScrollListener(this);
         gridView.setOnItemClickListener(this);
-//        gridView.setColumnCount(mColumnCount);
+        gridView.setColumnCount(mColumnCount, false);
 
         getLoaderManager().initLoader(0, null, this);
 
     }
 
+    private int readColumnCountFromPrefs(){
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+        return Integer.parseInt(prefs.getString(getString(R.string.key_num_columns),
+                getString(R.string.default_num_columns)));
+    }
 
+    // NOTE: for some unknown reason, after I tried some variations, the setColumnCount(count, layout) method
+    // should be called with layout set to false in onCreate and true in onResume
+    @Override
+    protected void onResume() {
+        super.onResume();
+        int count = readColumnCountFromPrefs();
+        if(count != mColumnCount){
+            mColumnCount = count;
+            gridView.setColumnCount(mColumnCount, true);
+            Log.d(TAG, "onResume mColumnCount: " + mColumnCount);
+        }
+
+    }
 
     public void onClick(View view){
         if(view.getId() == R.id.button_try_load_again)
@@ -153,24 +172,12 @@ public class MainActivity extends Activity implements AbsListView.OnScrollListen
     }
 
 
-
-
-
     private void cancelLoading(){
         VolleySingleton.getInstance(this).getRequestQueue().cancelAll(this);
     }
 
     @Override
-    public void onScrollStateChanged(AbsListView view, int scrollState) {
-//        String state;
-//        if(scrollState == SCROLL_STATE_FLING)
-//            state = "FLING";
-//        else if(scrollState == SCROLL_STATE_TOUCH_SCROLL)
-//            state = "TOUCH";
-//        else
-//            state = "IDLE";
-//        Log.d(TAG, "onScrollStateChanged: " + state);
-    }
+    public void onScrollStateChanged(AbsListView view, int scrollState) {}
 
     // TODO
     // for the time being, if the internet is not available, this would cause endless trying to load...
