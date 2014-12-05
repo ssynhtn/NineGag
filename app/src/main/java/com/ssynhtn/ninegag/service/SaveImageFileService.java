@@ -42,7 +42,7 @@ public class SaveImageFileService extends Service {
     }
 
     @Override
-    public int onStartCommand(Intent intent, int flags, int startId) {
+    public int onStartCommand(Intent intent, int flags, final int startId) {
         GagItem item = (GagItem) intent.getSerializableExtra(EXTRA_GAGITEM);
         final String filename = item.getCaption() + ".png";
         final String url = item.getImageUrlLarge();
@@ -58,6 +58,7 @@ public class SaveImageFileService extends Service {
                         @Override
                         public void run() {
                             saveBitmapToDisk(imageContainer.getBitmap(), filename);
+                            stopSelf(startId);
                         }
                     }).start();
                 }
