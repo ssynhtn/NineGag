@@ -22,24 +22,28 @@ import java.util.List;
 
 /**
  * Created by ssynhtn on 11/15/2014.
+ *
+ * I want that this class manages downloading but it shouldn't care about if there are downloads already going on or whatever
+ * it should just faithfully download what is requested and report result through OnDownloadListener
  */
 public class GagItemDownloaderFragment extends Fragment {
+    private static final String TAG = MainActivity.class.getSimpleName();
+
     private static final String BASE_URL = "http://infinigag-us.aws.af.cm/hot/";
     public static final String FIRST_PAGE = "0";
-    private static final String TAG = MainActivity.class.getSimpleName();
     private static final String KEY_NEXT = "KEY_NEXT";
 
     private String next;
     private OnDownloadListener mListener;
 
-    private boolean loading;
-//    private boolean lastLoadFailed;
+//    private boolean loading;
 
-//    public GagItemDownloaderFragment(Context context, OnDownloadListener listener) {
-//        this.context = context;
-//        mListener = listener;
-//    }
-
+    public static interface OnDownloadListener {
+        void onDownloadStart(boolean firstPage);   // give listener a chance to show progress and stuff
+        void onDownloadSuccess(List<GagItem> items, boolean firstPage);
+        void onDownloadFail(VolleyError error, boolean firstPage);
+//        void onNoHandle();  // download request was not handled for some reason, e.g. last downloading is in progress
+    }
 
     public GagItemDownloaderFragment() {
         super();
@@ -53,11 +57,20 @@ public class GagItemDownloaderFragment extends Fragment {
         Log.d(TAG, "Fragment onCreate, get next: " + next);
     }
 
+
+    // as soon as this fragment is stopped, save the next page
+    @Override
+    public void onStop() {
+        super.onStop();
+        PreferenceManager.getDefaultSharedPreferences(getActivity()).edit().putString(KEY_NEXT, next).commit();
+        Log.d(TAG, "Fragment onDestroy, saving next: " + next);
+    }
+
     @Override
     public void onDestroy() {
         super.onDestroy();
-        PreferenceManager.getDefaultSharedPreferences(getActivity()).edit().putString(KEY_NEXT, next).commit();
-        Log.d(TAG, "Fragment onDestroy, saving next: " + next);
+        // onDestroy is called before onDetach so it's safe to call getActivity()
+        VolleySingleton.getInstance(getActivity()).getRequestQueue().cancelAll(this);
     }
 
     @Override
@@ -68,13 +81,6 @@ public class GagItemDownloaderFragment extends Fragment {
         } catch (ClassCastException e){
             Log.e(TAG, "class " + activity.getClass() + " must implement " + OnDownloadListener.class + " interface");
         }
-    }
-
-    public static interface OnDownloadListener {
-        void onDownloadStart(String page);   // give listener a chance to show progress and stuff
-        void onDownloadSuccess(List<GagItem> items, String page, String next);
-        void onDownloadFail(VolleyError error, String page);
-//        void onNoHandle();  // download request was not handled for some reason, e.g. last downloading is in progress
     }
 
 
@@ -90,14 +96,15 @@ public class GagItemDownloaderFragment extends Fragment {
     }
 
     private void downloadMore(final String page){
-        if(loading) {
-            Log.d(TAG, "try loading page: " + page + " but is already loading, cancelled");
-            return;
-        } else {
-            Log.d(TAG, "try loading page: " + page);
-        }
+//        if(loading) {
+//            Log.d(TAG, "try loading page: " + page + " but is already loading, cancelled");
+//            return;
+//        } else {
+//            Log.d(TAG, "try loading page: " + page);
+//        }
 
         String url = BASE_URL + page;
+        final boolean firstPage = (FIRST_PAGE.equals(page));
         JsonObjectRequest request = new JsonObjectRequest(Request.Method.GET, url, null,
                 new Response.Listener<JSONObject>() {
                     @Override
@@ -116,24 +123,24 @@ public class GagItemDownloaderFragment extends Fragment {
                             throw new RuntimeException("next page is null!");
                         }
 
-                        mListener.onDownloadSuccess(items, page, nextPage);
-                        loading = false;
+                        mListener.onDownloadSuccess(items, firstPage);
+//                        loading = false;
 
                     }
                 },
                 new Response.ErrorListener(){
                     @Override
                     public void onErrorResponse(VolleyError volleyError) {
-                        loading = false;
-                        mListener.onDownloadFail(volleyError, page);
+//                        loading = false;
+                        mListener.onDownloadFail(volleyError, firstPage);
                     }
                 }
         );
 
         request.setTag(this);
 
-        loading = true;
-        mListener.onDownloadStart(page);
+//        loading = true;
+        mListener.onDownloadStart(firstPage);
         VolleySingleton.getInstance(getActivity()).addToRequestQueue(request);
 
     }
@@ -177,8 +184,11 @@ public class GagItemDownloaderFragment extends Fragment {
 
     public void restoreNext(){
         VolleySingleton.getInstance(getActivity()).getRequestQueue().cancelAll(this);
-        loading = false;
+//        loading = false;
         next = FIRST_PAGE;
     }
+
+
+
 
 }
