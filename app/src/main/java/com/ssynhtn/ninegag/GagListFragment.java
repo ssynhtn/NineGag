@@ -47,6 +47,7 @@ public class GagListFragment extends Fragment implements SwipeRefreshLayout.OnRe
     private static final String TAG = MainActivity.class.getSimpleName();
 
     private static final String TAG_DOWNLOADER_FRAGMENT = "downloader_fragment";
+    private static final String KEY_POSITION = "KEY_POSITION";
 
     StaggeredGridView gridView;
     private MyCursorAdapter adapter;
@@ -65,8 +66,19 @@ public class GagListFragment extends Fragment implements SwipeRefreshLayout.OnRe
     private int mColumnCount;
 
 
+    // mPosition is 0, 1, 2 when this page is "HOT", "trending", "fresh"
+    private int mPosition;
 
     public GagListFragment() {
+    }
+
+    public static GagListFragment newInstance(int position){
+        GagListFragment fragment = new GagListFragment();
+
+        Bundle args = new Bundle();
+        args.putInt(KEY_POSITION, position);
+        fragment.setArguments(args);
+        return fragment;
     }
 
     @Override
@@ -79,6 +91,13 @@ public class GagListFragment extends Fragment implements SwipeRefreshLayout.OnRe
     public void onActivityCreated(@Nullable Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
 
+        Bundle args = getArguments();
+        if(args.containsKey(KEY_POSITION)) {
+            mPosition = args.getInt(KEY_POSITION);
+        } else {
+            Log.e(TAG, "should have position key...");
+        }
+
         View rootView = getView();
         mSwipeRefreshLayout = (SwipeRefreshLayout) rootView.findViewById(R.id.swipe_refresh_layout);
         gridView = (StaggeredGridView) rootView.findViewById(R.id.gridView);
@@ -89,7 +108,7 @@ public class GagListFragment extends Fragment implements SwipeRefreshLayout.OnRe
         FragmentManager fm = getChildFragmentManager();
         mDownloader = (GagItemDownloaderFragment) fm.findFragmentByTag(TAG_DOWNLOADER_FRAGMENT);
         if(mDownloader == null) {
-            mDownloader = new GagItemDownloaderFragment();
+            mDownloader = GagItemDownloaderFragment.newInstance(mPosition);
             fm.beginTransaction().add(mDownloader, TAG_DOWNLOADER_FRAGMENT).commit();
         }
 

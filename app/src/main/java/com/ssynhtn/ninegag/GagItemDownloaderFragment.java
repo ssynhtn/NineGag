@@ -29,9 +29,13 @@ import java.util.List;
 public class GagItemDownloaderFragment extends Fragment {
     private static final String TAG = MainActivity.class.getSimpleName();
 
-    private static final String BASE_URL = "http://infinigag-us.aws.af.cm/hot/";
+//    private static final String BASE_URL = "http://infinigag-us.aws.af.cm/hot/";
     public static final String FIRST_PAGE = "0";
-    private static final String KEY_NEXT = "KEY_NEXT";
+//    private static final String KEY_NEXT = "KEY_NEXT";
+    private static final String KEY_INDEX = "KEY_INDEX";
+
+    private String url;
+    private String key_next;
 
     private String next;
     private OnDownloadListener mListener;
@@ -50,10 +54,30 @@ public class GagItemDownloaderFragment extends Fragment {
         setRetainInstance(true);
     }
 
+    public static GagItemDownloaderFragment newInstance(int index){
+        GagItemDownloaderFragment fragment = new GagItemDownloaderFragment();
+
+        Bundle args = new Bundle();
+        args.putInt(KEY_INDEX, index);
+        fragment.setArguments(args);
+        return fragment;
+    }
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        next = PreferenceManager.getDefaultSharedPreferences(getActivity()).getString(KEY_NEXT, FIRST_PAGE);
+
+        Bundle args = getArguments();
+        if(args.containsKey(KEY_INDEX)) {
+            int index = args.getInt(KEY_INDEX);
+            String path = GagConstants.GAG_PAGES[index];
+            url = GagConstants.GAG_BASE_URL + path;
+
+            key_next = GagConstants.KEY_NEXT[index];
+            next = PreferenceManager.getDefaultSharedPreferences(getActivity()).getString(key_next, FIRST_PAGE);
+        } else {
+            Log.e(TAG, "args should have " + KEY_INDEX);
+        }
         Log.d(TAG, "Fragment onCreate, get next: " + next);
     }
 
@@ -62,7 +86,7 @@ public class GagItemDownloaderFragment extends Fragment {
     @Override
     public void onStop() {
         super.onStop();
-        PreferenceManager.getDefaultSharedPreferences(getActivity()).edit().putString(KEY_NEXT, next).commit();
+        PreferenceManager.getDefaultSharedPreferences(getActivity()).edit().putString(key_next, next).commit();
         Log.d(TAG, "Fragment onDestroy, saving next: " + next);
     }
 
@@ -109,9 +133,9 @@ public class GagItemDownloaderFragment extends Fragment {
 //            Log.d(TAG, "try loading page: " + page);
 //        }
 
-        String url = BASE_URL + page;
+        String urlWithPage = this.url + "/" + page;
         final boolean firstPage = (FIRST_PAGE.equals(page));
-        JsonObjectRequest request = new JsonObjectRequest(Request.Method.GET, url, null,
+        JsonObjectRequest request = new JsonObjectRequest(Request.Method.GET, urlWithPage, null,
                 new Response.Listener<JSONObject>() {
                     @Override
                     public void onResponse(JSONObject jsonObject) {
