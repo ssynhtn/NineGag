@@ -1,4 +1,4 @@
-package com.ssynhtn.ninegag.data;
+package com.ssynhtn.ninegag.provider;
 
 import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;

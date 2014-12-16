@@ -10,7 +10,7 @@ import com.android.volley.Request;
 import com.android.volley.Response;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.JsonObjectRequest;
-import com.ssynhtn.ninegag.data.GagItem;
+import com.ssynhtn.ninegag.provider.GagItem;
 import com.ssynhtn.ninegag.volley.VolleySingleton;
 
 import org.json.JSONArray;
@@ -76,11 +76,17 @@ public class GagItemDownloaderFragment extends Fragment {
     @Override
     public void onAttach(Activity activity) {
         super.onAttach(activity);
-        try{
-            this.mListener = (OnDownloadListener) activity;
-        } catch (ClassCastException e){
-            Log.e(TAG, "class " + activity.getClass() + " must implement " + OnDownloadListener.class + " interface");
+
+        if(activity instanceof OnDownloadListener){
+            mListener = (OnDownloadListener) activity;
+        } else {
+            try{
+                mListener = (OnDownloadListener) getParentFragment();
+            } catch (ClassCastException e){
+                Log.d(TAG, "class " + activity.getClass() + " better implement " + OnDownloadListener.class + " interface" + " or fragment " + getParentFragment().getClass() + "better implement it");
+            }
         }
+
     }
 
 

@@ -1,9 +1,11 @@
 package com.ssynhtn.ninegag;
 
-import android.app.Activity;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.os.Bundle;
+import android.support.v4.view.MenuItemCompat;
+import android.support.v7.app.ActionBarActivity;
+import android.support.v7.widget.ShareActionProvider;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -11,13 +13,12 @@ import android.view.View;
 import android.view.Window;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
-import android.widget.ShareActionProvider;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.ImageLoader;
-import com.ssynhtn.ninegag.data.GagItem;
+import com.ssynhtn.ninegag.provider.GagItem;
 import com.ssynhtn.ninegag.service.SaveImageFileService;
 import com.ssynhtn.ninegag.volley.VolleySingleton;
 
@@ -26,7 +27,7 @@ import butterknife.InjectView;
 import uk.co.senab.photoview.PhotoViewAttacher;
 
 
-public class GagItemActivity extends Activity implements PhotoViewAttacher.OnViewTapListener {
+public class GagItemActivity extends ActionBarActivity implements PhotoViewAttacher.OnViewTapListener {
 
     public static final String EXTRA_GAG_ITEM = "EXTRA_GAG_ITEM";
     private static final String TAG = GagItemActivity.class.getSimpleName();
@@ -56,7 +57,8 @@ public class GagItemActivity extends Activity implements PhotoViewAttacher.OnVie
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        requestWindowFeature(Window.FEATURE_ACTION_BAR_OVERLAY);
+//        requestWindowFeature(Window.FEATURE_ACTION_BAR_OVERLAY);
+        supportRequestWindowFeature(Window.FEATURE_ACTION_BAR_OVERLAY);
 
         setContentView(R.layout.activity_gag_item);
         ButterKnife.inject(this);
@@ -99,11 +101,11 @@ public class GagItemActivity extends Activity implements PhotoViewAttacher.OnVie
 
     private void toggleWidgetsVisibility() {
         if (mWidgetsVisible) {
-            getActionBar().hide();
+            getSupportActionBar().hide();
             mCaptionTextView.setVisibility(View.GONE);
             mWidgetsVisible = false;
         } else {
-            getActionBar().show();
+            getSupportActionBar().show();
             mCaptionTextView.setVisibility(View.VISIBLE);
             mWidgetsVisible = true;
         }
@@ -120,7 +122,8 @@ public class GagItemActivity extends Activity implements PhotoViewAttacher.OnVie
         getMenuInflater().inflate(R.menu.menu_gag_item, menu);
 
         MenuItem shareItem = menu.findItem(R.id.action_share);
-        ShareActionProvider provider = (ShareActionProvider) shareItem.getActionProvider();
+
+        ShareActionProvider provider = (ShareActionProvider) MenuItemCompat.getActionProvider(shareItem);
         provider.setShareIntent(createShareIntent());
 
         return true;

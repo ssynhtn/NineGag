@@ -12,7 +12,7 @@ import android.widget.TextView;
 
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.ImageLoader;
-import com.ssynhtn.ninegag.data.GagItem;
+import com.ssynhtn.ninegag.provider.GagItem;
 import com.ssynhtn.ninegag.view.SquareImageView;
 import com.ssynhtn.ninegag.volley.VolleySingleton;
 

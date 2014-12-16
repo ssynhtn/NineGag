@@ -20,7 +20,6 @@
         <item>Three</item>
         <item>Four</item>
     </string-array>
-
     <string-array name="num_columns_values">
         <item>1</item>
         <item>2</item>
@@ -30,5 +29,7 @@
 
     <string name="default_num_columns">2</string>
     <string name="title_activity_settings">SettingsActivity</string>
+    <string name="title_activity_gag_list">GagListActivity</string>
+    <string name="hello_blank_fragment">Hello blank fragment</string>
 
 </resources>

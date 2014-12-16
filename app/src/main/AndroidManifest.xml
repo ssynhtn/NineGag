@@ -10,8 +10,35 @@
         android:icon="@drawable/ic_launcher"
         android:label="@string/app_name"
         android:theme="@style/AppTheme" >
+
         <activity
-            android:name="com.ssynhtn.ninegag.MainActivity"
+            android:name=".GagItemActivity"
+            android:label="@string/title_activity_gag_item"
+            android:parentActivityName=".GagListActivity" >
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value="com.ssynhtn.ninegag.GagListActivity" />
+        </activity>
+
+        <provider
+            android:name=".provider.GagProvider"
+            android:authorities="com.ssynhtn.ninegag.provider"
+            android:enabled="true"
+            android:exported="false" >
+        </provider>
+
+        <activity
+            android:name=".SettingsActivity"
+            android:label="@string/title_activity_settings" >
+        </activity>
+
+        <service
+            android:name=".service.SaveImageFileService"
+            android:exported="false" >
+        </service>
+
+        <activity
+            android:name=".GagListActivity"
             android:label="@string/app_name" >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -19,31 +46,6 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity
-            android:name="com.ssynhtn.ninegag.GagItemActivity"
-            android:label="@string/title_activity_gag_item"
-            android:parentActivityName="com.ssynhtn.ninegag.MainActivity" >
-            <meta-data
-                android:name="android.support.PARENT_ACTIVITY"
-                android:value="com.ssynhtn.ninegag.MainActivity" />
-        </activity>
-
-        <provider
-            android:name="com.ssynhtn.ninegag.data.GagProvider"
-            android:authorities="com.ssynhtn.ninegag.provider"
-            android:enabled="true"
-            android:exported="false" >
-        </provider>
-
-        <activity
-            android:name="com.ssynhtn.ninegag.SettingsActivity"
-            android:label="@string/title_activity_settings" >
-        </activity>
-
-        <service
-            android:name="com.ssynhtn.ninegag.service.SaveImageFileService"
-            android:exported="false" >
-        </service>
     </application>
 
 </manifest>

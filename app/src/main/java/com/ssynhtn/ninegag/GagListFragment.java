@@ -1,5 +1,9 @@
 package com.ssynhtn.ninegag;
 
+/**
+ * Created by PC on 2014/12/16.
+ */
+
 import android.content.ContentValues;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -7,17 +11,17 @@ import android.database.Cursor;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
+import android.support.annotation.Nullable;
+import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.LoaderManager;
 import android.support.v4.content.CursorLoader;
 import android.support.v4.content.Loader;
 import android.support.v4.widget.SwipeRefreshLayout;
-import android.support.v7.app.ActionBarActivity;
 import android.util.Log;
 import android.view.LayoutInflater;
-import android.view.Menu;
-import android.view.MenuItem;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.AbsListView;
 import android.widget.AdapterView;
 import android.widget.Button;
@@ -29,32 +33,24 @@ import com.android.volley.VolleyError;
 import com.etsy.android.grid.StaggeredGridView;
 import com.ssynhtn.ninegag.provider.GagContract;
 import com.ssynhtn.ninegag.provider.GagItem;
-import com.ssynhtn.ninegag.volley.VolleySingleton;
 
 import java.util.List;
 
-import butterknife.ButterKnife;
-import butterknife.InjectView;
+/**
+ * A placeholder fragment containing a simple view.
+ */
+public class GagListFragment extends Fragment implements SwipeRefreshLayout.OnRefreshListener, View.OnClickListener,
+        AbsListView.OnScrollListener ,AdapterView.OnItemClickListener, LoaderManager.LoaderCallbacks<Cursor>,
+        GagItemDownloaderFragment.OnDownloadListener {
 
 
-// after a bunch of test, the only conclusion I can get is that: with footer view added, the staggered grid view
-// can't give a consistent onScroll parameter, it mostly gives 1 more when entering the app, but gives exactly 0 when exiting
-// should try to avoid the footer view wholly
-public class MainActivity extends ActionBarActivity implements AbsListView.OnScrollListener,
-        GagItemDownloaderFragment.OnDownloadListener,
-        View.OnClickListener,
-        AdapterView.OnItemClickListener,
-        SwipeRefreshLayout.OnRefreshListener,
-        LoaderManager.LoaderCallbacks<Cursor>{
     private static final String TAG = MainActivity.class.getSimpleName();
 
     private static final String TAG_DOWNLOADER_FRAGMENT = "downloader_fragment";
 
-    @InjectView(R.id.gridView)
     StaggeredGridView gridView;
     private MyCursorAdapter adapter;
 
-    @InjectView(R.id.swipe_refresh_layout)
     SwipeRefreshLayout mSwipeRefreshLayout;
 
     private LinearLayout mLinearLayout;
@@ -68,33 +64,42 @@ public class MainActivity extends ActionBarActivity implements AbsListView.OnScr
 
     private int mColumnCount;
 
+
+
+    public GagListFragment() {
+    }
+
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
+    public View onCreateView(LayoutInflater inflater, ViewGroup container,
+                             Bundle savedInstanceState) {
+        return inflater.inflate(R.layout.fragment_gag_list, container, false);
+    }
 
-        ButterKnife.inject(this);
+    @Override
+    public void onActivityCreated(@Nullable Bundle savedInstanceState) {
+        super.onActivityCreated(savedInstanceState);
 
-        PreferenceManager.setDefaultValues(this, R.xml.preferences, false);
+        View rootView = getView();
+        mSwipeRefreshLayout = (SwipeRefreshLayout) rootView.findViewById(R.id.swipe_refresh_layout);
+        gridView = (StaggeredGridView) rootView.findViewById(R.id.gridView);
+
+        PreferenceManager.setDefaultValues(getActivity(), R.xml.preferences, false);
         mColumnCount = readColumnCountFromPrefs();
-        Log.d(TAG, "on create, column count: " + mColumnCount);
 
-        FragmentManager fm = getSupportFragmentManager();
+        FragmentManager fm = getChildFragmentManager();
         mDownloader = (GagItemDownloaderFragment) fm.findFragmentByTag(TAG_DOWNLOADER_FRAGMENT);
         if(mDownloader == null) {
             mDownloader = new GagItemDownloaderFragment();
             fm.beginTransaction().add(mDownloader, TAG_DOWNLOADER_FRAGMENT).commit();
         }
 
-
-        mSwipeRefreshLayout.setColorSchemeResources(android.R.color.holo_blue_light,
-                android.R.color.holo_green_light,
-                android.R.color.holo_red_light,
-                android.R.color.holo_orange_light);
+        mSwipeRefreshLayout.setColorSchemeResources(R.color.holo_blue,
+                R.color.holo_green,
+                R.color.holo_red,
+                R.color.holo_orange);
         mSwipeRefreshLayout.setOnRefreshListener(this);
 
-
-        LayoutInflater inflater = LayoutInflater.from(this);
+        LayoutInflater inflater = LayoutInflater.from(getActivity());
         View footerView = inflater.inflate(R.layout.grid_view_footer, gridView, false);
         gridView.addFooterView(footerView);
 
@@ -104,27 +109,18 @@ public class MainActivity extends ActionBarActivity implements AbsListView.OnScr
         tryLoadButton = (Button) footerView.findViewById(R.id.button_try_load_again);
         tryLoadButton.setOnClickListener(this);
 
-        adapter = new MyCursorAdapter(this, null, 0);
+        adapter = new MyCursorAdapter(getActivity(), null, 0);
 
         gridView.setAdapter(adapter);
         gridView.setOnScrollListener(this);
         gridView.setOnItemClickListener(this);
         gridView.setColumnCount(mColumnCount, false);
 
-        getSupportLoaderManager().initLoader(0, null, this);
-
+        getLoaderManager().initLoader(0, null, this);
     }
 
-    private int readColumnCountFromPrefs(){
-        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
-        return Integer.parseInt(prefs.getString(getString(R.string.key_num_columns),
-                getString(R.string.default_num_columns)));
-    }
-
-    // NOTE: for some unknown reason, after I tried some variations, the setColumnCount(count, layout) method
-    // should be called with layout set to false in onCreate and true in onResume
     @Override
-    protected void onResume() {
+    public void onResume() {
         super.onResume();
         int count = readColumnCountFromPrefs();
         if(count != mColumnCount){
@@ -135,46 +131,68 @@ public class MainActivity extends ActionBarActivity implements AbsListView.OnScr
 
     }
 
+    private int readColumnCountFromPrefs(){
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getActivity());
+        return Integer.parseInt(prefs.getString(getString(R.string.key_num_columns),
+                getString(R.string.default_num_columns)));
+    }
+
+    @Override
+    public void onRefresh() {
+        fetchData(true);
+    }
+
+    private void fetchData(boolean firstPage){
+        mDownloading = true;
+        if(firstPage){
+            mDownloader.downloadFirst();
+        } else {
+            mDownloader.downloadMore();
+        }
+    }
+
     public void onClick(View view){
         if(view.getId() == R.id.button_try_load_again)
             fetchData(false);
     }
 
 
-
     @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu; this adds items to the action bar if it is present.
-        getMenuInflater().inflate(R.menu.menu_main, menu);
-        return true;
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
-        int id = item.getItemId();
-
-        //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
-            Intent intent = new Intent(this, SettingsActivity.class);
-            startActivity(intent);
-            return true;
+    public Loader<Cursor> onCreateLoader(int i, Bundle bundle) {
+        if(i != 0){
+            throw new IllegalArgumentException("unexpected token: " + i);
         }
-        return super.onOptionsItemSelected(item);
+        String[] projection = null;
+        String selection = null;
+        String[] selectionArgs = null;
+        String order = GagContract.GagEntry._ID + " ASC";
+        return new CursorLoader(getActivity(), GagContract.GagEntry.CONTENT_URI, projection, selection, selectionArgs, order);
     }
 
-    // for debug only, if call this when the loading is in progress, the data will be all deleted and ongoing loading will be cancelled
-    // but then the onLoadFailed won't be called, the progress bar will hang there forever
-    private void clearDatabase() {
-        getContentResolver().delete(GagContract.GagEntry.CONTENT_URI, null, null);
-        mDownloader.restoreNext();
+    @Override
+    public void onLoadFinished(Loader<Cursor> cursorLoader, Cursor cursor) {
+        if(cursor != null && cursor.getCount() > 0){
+            adapter.swapCursor(cursor);
+        } else {
+            Log.d(TAG, "empty cursor, do a total refresh");
+            onRefresh();
+        }
     }
 
+    @Override
+    public void onLoaderReset(Loader<Cursor> cursorLoader) {
+        adapter.swapCursor(null);
+    }
 
-    private void cancelLoading(){
-        VolleySingleton.getInstance(this).getRequestQueue().cancelAll(this);
+    @Override
+    public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+        GagItem item = ((MyCursorAdapter.ViewHolder)view.getTag()).mGagItem;
+
+        Intent intent = new Intent(getActivity(), GagItemActivity.class);
+        intent.putExtra(GagItemActivity.EXTRA_GAG_ITEM, item);
+        startActivity(intent);
+
+//        Toast.makeText(this, "clicked on item: " + urlLarge + ", caption: " + caption, Toast.LENGTH_SHORT).show();
     }
 
     @Override
@@ -196,21 +214,12 @@ public class MainActivity extends ActionBarActivity implements AbsListView.OnScr
         }
 
     }
-
     private boolean hasReachedEnd(int firstVisibleItem, int visibleItemCount, int totalItemCount) {
-            // when the last item in list becomes visible, this returns true
+        // when the last item in list becomes visible, this returns true
         // 1 used to load 1 item quicker than really reach end of list
         return firstVisibleItem + visibleItemCount + 1 >= totalItemCount;
     }
 
-    private void fetchData(boolean firstPage){
-        mDownloading = true;
-        if(firstPage){
-            mDownloader.downloadFirst();
-        } else {
-            mDownloader.downloadMore();
-        }
-    }
 
     @Override
     public void onDownloadStart(boolean firstPage) {
@@ -244,71 +253,20 @@ public class MainActivity extends ActionBarActivity implements AbsListView.OnScr
 
         if(firstPage){
             mSwipeRefreshLayout.setRefreshing(false);
-            Toast.makeText(this, "loading failed, try refresh again", Toast.LENGTH_SHORT).show();
+            Toast.makeText(getActivity(), "loading failed, try refresh again", Toast.LENGTH_SHORT).show();
         } else {
             mLinearLayout.setVisibility(View.VISIBLE);
             tryLoadButton.setVisibility(View.VISIBLE);
             mProgressBar.setVisibility(View.GONE);
-            Toast.makeText(this, "loading failed, try click on button to load more", Toast.LENGTH_SHORT).show();
+            Toast.makeText(getActivity(), "loading failed, try click on button to load more", Toast.LENGTH_SHORT).show();
         }
 
         mDownloading = false;
         mLastLoadingFailed = true;
+
     }
 
-
-    @Override
-    public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-        GagItem item = ((MyCursorAdapter.ViewHolder)view.getTag()).mGagItem;
-
-        Intent intent = new Intent(this,GagItemActivity.class);
-        intent.putExtra(GagItemActivity.EXTRA_GAG_ITEM, item);
-        startActivity(intent);
-
-//        Toast.makeText(this, "clicked on item: " + urlLarge + ", caption: " + caption, Toast.LENGTH_SHORT).show();
-    }
-
-    @Override
-    public void onRefresh() {
-        Log.d(TAG, "onRefresh");
-        fetchData(true);
-    }
-
-    @Override
-    public Loader<Cursor> onCreateLoader(int i, Bundle bundle) {
-        if(i != 0){
-            throw new IllegalArgumentException("unexpected token: " + i);
-        }
-        String[] projection = null;
-        String selection = null;
-        String[] selectionArgs = null;
-        String order = GagContract.GagEntry._ID + " ASC";
-        return new CursorLoader(this, GagContract.GagEntry.CONTENT_URI, projection, selection, selectionArgs, order);
-    }
-
-    @Override
-    public void onLoadFinished(Loader<Cursor> cursorLoader, Cursor cursor) {
-        if(cursor != null && cursor.getCount() > 0){
-            adapter.swapCursor(cursor);
-        } else {
-            Log.d(TAG, "empty cursor, do a total refresh");
-            onRefresh();
-        }
-
-
-
-        // only after the stored data is loaded, do we set the listener, so that the listener won't be triggered
-        // when the cursor is null at first
-//        gridView.setOnScrollListener(this);
-    }
-
-    @Override
-    public void onLoaderReset(Loader<Cursor> cursorLoader) {
-        adapter.swapCursor(null);
-    }
-
-
-    public class BulkInsertTask extends AsyncTask<Void, Void, Void>{
+    public class BulkInsertTask extends AsyncTask<Void, Void, Void> {
 
         private ContentValues[] values;
         private boolean firstPage;
@@ -321,10 +279,11 @@ public class MainActivity extends ActionBarActivity implements AbsListView.OnScr
 
         @Override
         protected Void doInBackground(Void... params) {
+
             if(firstPage){
-                getContentResolver().delete(GagContract.GagEntry.CONTENT_URI, null, null);
+                getActivity().getContentResolver().delete(GagContract.GagEntry.CONTENT_URI, null, null);
             }
-            getContentResolver().bulkInsert(GagContract.GagEntry.CONTENT_URI, values);
+            getActivity().getContentResolver().bulkInsert(GagContract.GagEntry.CONTENT_URI, values);
             return null;
         }
 
