@@ -1,8 +1,15 @@
 <resources>
 
     <!-- Base application theme. -->
-    <style name="AppTheme" parent="android:Theme.Holo.Light.DarkActionBar">
+    <style name="AppTheme" parent="Theme.AppCompat.Light.DarkActionBar">
         <!-- Customize your theme here. -->
     </style>
 
+    <style name="captionStyle">
+        <item name="android:minHeight">48dp</item>
+    </style>
+
+    <style name="descStyle">
+        <item name="android:layout_marginTop">48dp</item>
+    </style>
 </resources>

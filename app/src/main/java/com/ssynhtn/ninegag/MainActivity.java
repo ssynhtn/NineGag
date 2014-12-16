@@ -1,18 +1,18 @@
 package com.ssynhtn.ninegag;
 
-import android.app.Activity;
-import android.app.FragmentManager;
-import android.app.LoaderManager;
 import android.content.ContentValues;
-import android.content.CursorLoader;
 import android.content.Intent;
-import android.content.Loader;
 import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
+import android.support.v4.app.FragmentManager;
+import android.support.v4.app.LoaderManager;
+import android.support.v4.content.CursorLoader;
+import android.support.v4.content.Loader;
 import android.support.v4.widget.SwipeRefreshLayout;
+import android.support.v7.app.ActionBarActivity;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -40,7 +40,7 @@ import butterknife.InjectView;
 // after a bunch of test, the only conclusion I can get is that: with footer view added, the staggered grid view
 // can't give a consistent onScroll parameter, it mostly gives 1 more when entering the app, but gives exactly 0 when exiting
 // should try to avoid the footer view wholly
-public class MainActivity extends Activity implements AbsListView.OnScrollListener,
+public class MainActivity extends ActionBarActivity implements AbsListView.OnScrollListener,
         GagItemDownloaderFragment.OnDownloadListener,
         View.OnClickListener,
         AdapterView.OnItemClickListener,
@@ -79,7 +79,7 @@ public class MainActivity extends Activity implements AbsListView.OnScrollListen
         mColumnCount = readColumnCountFromPrefs();
         Log.d(TAG, "on create, column count: " + mColumnCount);
 
-        FragmentManager fm = getFragmentManager();
+        FragmentManager fm = getSupportFragmentManager();
         mDownloader = (GagItemDownloaderFragment) fm.findFragmentByTag(TAG_DOWNLOADER_FRAGMENT);
         if(mDownloader == null) {
             mDownloader = new GagItemDownloaderFragment();
@@ -111,7 +111,7 @@ public class MainActivity extends Activity implements AbsListView.OnScrollListen
         gridView.setOnItemClickListener(this);
         gridView.setColumnCount(mColumnCount, false);
 
-        getLoaderManager().initLoader(0, null, this);
+        getSupportLoaderManager().initLoader(0, null, this);
 
     }
 

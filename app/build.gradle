@@ -6,7 +6,7 @@ android {
 
     defaultConfig {
         applicationId "com.ssynhtn.ninegag"
-        minSdkVersion 14
+        minSdkVersion 10
         targetSdkVersion 21
         versionCode 1
         versionName "1.0"
@@ -29,8 +29,7 @@ dependencies {
     compile fileTree(include: ['*.jar'], dir: 'libs')
     compile 'com.jakewharton:butterknife:6.0.0'
     compile 'com.android.support:support-v4:21.0.0'
-    //    compile 'com.android.support:appcompat-v7:21.0.0'
-//    compile 'com.etsy.android.grid:library:1.0.5@aar'
+    compile 'com.android.support:appcompat-v7:21.0.2'
     compile(name:'etsy-library-1.0.5', ext:'aar')
     compile 'com.github.chrisbanes.photoview:library:1.2.3'
 }

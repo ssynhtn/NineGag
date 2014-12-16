@@ -1,7 +1,7 @@
 package com.ssynhtn.ninegag.volley;
 
 import android.graphics.Bitmap;
-import android.util.LruCache;
+import android.support.v4.util.LruCache;
 
 import com.android.volley.toolbox.ImageLoader;
 
@@ -20,7 +20,7 @@ public class BitmapLruCache extends LruCache<String, Bitmap> implements ImageLoa
 
     @Override
     protected int sizeOf(String key, Bitmap value) {
-        return value.getByteCount();
+        return value.getRowBytes() * value.getHeight();
     }
 
     @Override
